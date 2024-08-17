@@ -92,6 +92,11 @@ namespace TimetableDesigner
 
         #region Events
 
+        private void FormMain_Load(object sender, EventArgs e)
+        {
+            reportDesigner1.ScalingFactor = 0.5f;
+        }
+
         private void tsMain_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
             if (e.ClickedItem == tsbZoomIn)
@@ -141,8 +146,9 @@ namespace TimetableDesigner
             }
         }
 
+
         #endregion
 
-       
+        
     }
 }

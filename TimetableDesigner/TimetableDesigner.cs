@@ -32,7 +32,6 @@ namespace TimetableDesigner
         private const float A4_WIDTH_MM = 210;
         private const float A4_HEIGHT_MM = 297;
         private const float MM_PER_INCH = 25.4f;
-        private const float POINTS_PER_INCH = 72f;
         private const int RESIZE_HANDLE_SIZE = 6;
         private const float SNAP_THRESHOLD = 5f; // Threshold for snapping in paper space
         private const int RULER_SIZE = 20; // Width/Height of the rulers
@@ -51,7 +50,7 @@ namespace TimetableDesigner
         /// <summary>
         /// Scale factor for the paper size.
         /// </summary>
-        public float ScalingFactor { get; set; } = 0.5f;
+        public float ScalingFactor { get; set; } = 1;
         #endregion
 
         #region Private fields 
@@ -221,6 +220,13 @@ namespace TimetableDesigner
             }
         }
 
+        protected override void OnResize(EventArgs eventargs)
+        {
+            base.OnResize(eventargs);
+
+            Invalidate();
+        }
+
         #endregion
 
 
@@ -346,8 +352,12 @@ namespace TimetableDesigner
                 g.DrawRectangle(Pens.Blue, rect.X, rect.Y, rect.Width, rect.Height);
             }
 
-            DrawWrappedText(g, textField.Text, rect, textField.Font, textField.TextColor);
-            DrawResizeHandle(g, rect);
+            using (Font scaledFont = new Font(textField.Font.FontFamily, textField.Font.Size * ScalingFactor, textField.Font.Style))
+            {
+                DrawWrappedText(g, textField.Text, rect, scaledFont, textField.TextColor);
+                DrawResizeHandle(g, rect);
+            }
+
         }
 
         /// <summary>

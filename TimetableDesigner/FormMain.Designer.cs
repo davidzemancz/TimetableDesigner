@@ -34,10 +34,10 @@
             this.tsbZoomIn = new System.Windows.Forms.ToolStripButton();
             this.tsbZoomOut = new System.Windows.Forms.ToolStripButton();
             this.tsbAddTextField = new System.Windows.Forms.ToolStripButton();
-            this.tsbSavePdf = new System.Windows.Forms.ToolStripButton();
             this.tsbSnapping = new System.Windows.Forms.ToolStripButton();
-            this.reportDesigner1 = new TimetableDesigner();
+            this.tsbSavePdf = new System.Windows.Forms.ToolStripButton();
             this.fontDialog1 = new System.Windows.Forms.FontDialog();
+            this.reportDesigner1 = new TimetableDesigner();
             this.tsMain.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -83,15 +83,6 @@
             this.tsbAddTextField.Size = new System.Drawing.Size(82, 22);
             this.tsbAddTextField.Text = "Add text field";
             // 
-            // tsbSavePdf
-            // 
-            this.tsbSavePdf.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.tsbSavePdf.Image = ((System.Drawing.Image)(resources.GetObject("tsbSavePdf.Image")));
-            this.tsbSavePdf.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.tsbSavePdf.Name = "tsbSavePdf";
-            this.tsbSavePdf.Size = new System.Drawing.Size(73, 22);
-            this.tsbSavePdf.Text = "Save to .pdf";
-            // 
             // tsbSnapping
             // 
             this.tsbSnapping.Checked = true;
@@ -104,12 +95,21 @@
             this.tsbSnapping.Size = new System.Drawing.Size(61, 22);
             this.tsbSnapping.Text = "Snapping";
             // 
+            // tsbSavePdf
+            // 
+            this.tsbSavePdf.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsbSavePdf.Image = ((System.Drawing.Image)(resources.GetObject("tsbSavePdf.Image")));
+            this.tsbSavePdf.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsbSavePdf.Name = "tsbSavePdf";
+            this.tsbSavePdf.Size = new System.Drawing.Size(73, 22);
+            this.tsbSavePdf.Text = "Save to .pdf";
+            // 
             // reportDesigner1
             // 
             this.reportDesigner1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.reportDesigner1.Location = new System.Drawing.Point(0, 25);
             this.reportDesigner1.Name = "reportDesigner1";
-            this.reportDesigner1.ScalingFactor = 0.5F;
+            this.reportDesigner1.ScalingFactor = 1F;
             this.reportDesigner1.Size = new System.Drawing.Size(1206, 865);
             this.reportDesigner1.SnappingEnabled = true;
             this.reportDesigner1.TabIndex = 1;
@@ -123,6 +123,7 @@
             this.Controls.Add(this.tsMain);
             this.Name = "FormMain";
             this.Text = "Form1";
+            this.Load += new System.EventHandler(this.FormMain_Load);
             this.tsMain.ResumeLayout(false);
             this.tsMain.PerformLayout();
             this.ResumeLayout(false);
