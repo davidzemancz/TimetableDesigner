@@ -11,6 +11,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using System.Windows.Forms.Design.Behavior;
+using Color = System.Drawing.Color;
 using Point = System.Drawing.Point;
 
 namespace TimetableDesigner
@@ -23,6 +25,9 @@ namespace TimetableDesigner
         private PointF lastMousePosition;
         private bool isResizing = false;
         private const int RESIZE_HANDLE_SIZE = 6;
+
+        private const float SNAP_THRESHOLD = 5f; // Threshold for snapping in paper space
+        private List<SnapLine> snapLines = new List<SnapLine>();
 
         // A4 paper dimensions in pixels at 100% scale
         private const float A4_WIDTH = 827;
@@ -116,6 +121,25 @@ namespace TimetableDesigner
                     fieldLocation.Y + fieldSize.Height - RESIZE_HANDLE_SIZE,
                     RESIZE_HANDLE_SIZE, RESIZE_HANDLE_SIZE);
             }
+
+            // Draw snap lines
+            using (Pen snapPen = new Pen(Color.Red, 1))
+            {
+                snapPen.DashStyle = System.Drawing.Drawing2D.DashStyle.Dash;
+                foreach (var snapLine in snapLines)
+                {
+                    if (snapLine.IsVertical)
+                    {
+                        x = PaperToControl(new PointF(snapLine.Position, 0)).X;
+                        e.Graphics.DrawLine(snapPen, x, 0, x, this.Height);
+                    }
+                    else
+                    {
+                        y = PaperToControl(new PointF(0, snapLine.Position)).Y;
+                        e.Graphics.DrawLine(snapPen, 0, y, this.Width, y);
+                    }
+                }
+            }
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -177,11 +201,23 @@ namespace TimetableDesigner
                 }
                 else
                 {
-                    // Move the text field
-                    selectedTextField.Location = new PointF(
+                    PointF newLocation = new PointF(
                         selectedTextField.Location.X + deltaX,
                         selectedTextField.Location.Y + deltaY
                     );
+
+                    // Check if the text field is not moved outside the paper
+                    PointF newPaperLocation = ControlToPaper(newLocation);
+                    if (newLocation.X < 0) newLocation.X = 0;
+                    if (newLocation.Y < 0) newLocation.Y = 0;
+                    if (newLocation.X + selectedTextField.Size.Width > A4_WIDTH) newLocation.X = A4_WIDTH - selectedTextField.Size.Width;
+                    if (newLocation.Y + selectedTextField.Size.Height > A4_HEIGHT) newLocation.Y = A4_HEIGHT - selectedTextField.Size.Height;
+
+                    // Apply snapping
+                    newLocation = ApplySnapping(newLocation);
+
+                    // Move the text field
+                    selectedTextField.Location = newLocation;
                 }
 
                 lastMousePosition = paperPosition;
@@ -189,11 +225,51 @@ namespace TimetableDesigner
             }
         }
 
+        private PointF ApplySnapping(PointF newLocation)
+        {
+            snapLines.Clear();
+            float snapX = newLocation.X;
+            float snapY = newLocation.Y;
+
+            foreach (var field in textFields.Where(f => f != selectedTextField))
+            {
+                // Snap to left edge
+                if (Math.Abs(newLocation.X - field.Location.X) < SNAP_THRESHOLD)
+                {
+                    snapX = field.Location.X;
+                    snapLines.Add(new SnapLine { IsVertical = true, Position = snapX });
+                }
+                // Snap to right edge
+                else if (Math.Abs((newLocation.X + selectedTextField.Size.Width) - (field.Location.X + field.Size.Width)) < SNAP_THRESHOLD)
+                {
+                    snapX = field.Location.X + field.Size.Width - selectedTextField.Size.Width;
+                    snapLines.Add(new SnapLine { IsVertical = true, Position = field.Location.X + field.Size.Width });
+                }
+
+                // Snap to top edge
+                if (Math.Abs(newLocation.Y - field.Location.Y) < SNAP_THRESHOLD)
+                {
+                    snapY = field.Location.Y;
+                    snapLines.Add(new SnapLine { IsVertical = false, Position = snapY });
+                }
+                // Snap to bottom edge
+                else if (Math.Abs((newLocation.Y + selectedTextField.Size.Height) - (field.Location.Y + field.Size.Height)) < SNAP_THRESHOLD)
+                {
+                    snapY = field.Location.Y + field.Size.Height - selectedTextField.Size.Height;
+                    snapLines.Add(new SnapLine { IsVertical = false, Position = field.Location.Y + field.Size.Height });
+                }
+            }
+
+            return new PointF(snapX, snapY);
+        }
+
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
-            //selectedTextField = null;
+            snapLines.Clear();
             isResizing = false;
+
+            Invalidate();
         }
 
         protected override void OnMouseDoubleClick(MouseEventArgs e)
@@ -221,18 +297,34 @@ namespace TimetableDesigner
             editTextBox.Size = Size.Round(fieldSize);
             editTextBox.Text = textField.Text;
             editTextBox.Tag = textField;
+            editTextBox.Multiline = true;
             editTextBox.Visible = true;
             editTextBox.Focus();
         }
 
         private void EditTextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Enter)
+            if (e.KeyCode == Keys.Enter && !e.Control)
             {
                 FinishEditing();
                 e.Handled = true;
                 e.SuppressKeyPress = true;
             }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                // Ensure user wants to cancel editing
+                if (MessageBox.Show("Are you sure you want to cancel editing?", "Cancel editing", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    CancelEditing();
+                }
+            }
+        }
+
+        private void CancelEditing()
+        {
+            editTextBox.Visible = false;
+            editTextBox.Tag = null;
+            this.Invalidate();
         }
 
         private void FinishEditing()
@@ -270,7 +362,7 @@ namespace TimetableDesigner
             );
         }
 
-        private PointF ControlToPaper(Point controlLocation)
+        private PointF ControlToPaper(PointF controlLocation)
         {
             float paperWidth = A4_WIDTH * Scale;
             float paperHeight = A4_HEIGHT * Scale;
@@ -315,8 +407,7 @@ namespace TimetableDesigner
                         .SetFontColor(ColorConstants.BLACK)
                         .SetFixedPosition(x, y, width)
                         .SetWidth(width)
-                        .SetHeight(height)
-                        .SetBorder(new SolidBorder(ColorConstants.RED, 0.5f)); // Add a border for visibility
+                        .SetHeight(height); // Add a border for visibility
 
                     document.Add(p);
                 }
@@ -337,5 +428,11 @@ namespace TimetableDesigner
         public string Text { get; set; }
         public PointF Location { get; set; }
         public SizeF Size { get; set; }
+    }
+
+    public class SnapLine
+    {
+        public bool IsVertical { get; set; }
+        public float Position { get; set; }
     }
 }
