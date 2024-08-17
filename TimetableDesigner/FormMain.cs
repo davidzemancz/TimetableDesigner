@@ -94,18 +94,14 @@ namespace TimetableDesigner
 
         private void tsMain_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
-            if (e.ClickedItem == tsbPrintTest1)
+            if (e.ClickedItem == tsbZoomIn)
             {
-                PrintTest1();
-            }
-            else if (e.ClickedItem == tsbZoomIn)
-            {
-                reportDesigner1.Scale += 0.1f;
+                reportDesigner1.ScalingFactor += 0.1f;
                 reportDesigner1.Invalidate();
             }
             else if (e.ClickedItem == tsbZoomOut)
             {
-                reportDesigner1.Scale -= 0.1f;
+                reportDesigner1.ScalingFactor -= 0.1f;
                 reportDesigner1.Invalidate();
             }
             else if (e.ClickedItem == tsbAddTextField)
@@ -133,6 +129,10 @@ namespace TimetableDesigner
                     System.Diagnostics.Process.Start(outputPath);
                 }
 
+            }
+            else if (e.ClickedItem == tsbSnapping)
+            {
+                reportDesigner1.SnappingEnabled = !tsbSnapping.Checked;
             }
         }
 

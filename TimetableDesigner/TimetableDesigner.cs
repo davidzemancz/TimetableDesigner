@@ -14,6 +14,7 @@ using System.Windows.Forms;
 using System.Windows.Forms.Design.Behavior;
 using Color = System.Drawing.Color;
 using Point = System.Drawing.Point;
+using Rectangle = System.Drawing.Rectangle;
 
 namespace TimetableDesigner
 {
@@ -25,16 +26,36 @@ namespace TimetableDesigner
         #region Constants
 
         // A4 paper dimensions in pixels at 100% scale
-        private const float A4_WIDTH = 827;
-        private const float A4_HEIGHT = 1169;
+        
+        private const float A4_WIDTH_MM = 210;
+        private const float A4_HEIGHT_MM = 297;
+        private const float MM_PER_INCH = 25.4f;
+        private const float POINTS_PER_INCH = 72f;
         private const int RESIZE_HANDLE_SIZE = 6;
         private const float SNAP_THRESHOLD = 5f; // Threshold for snapping in paper space
+        private const int RULER_SIZE = 20; // Width/Height of the rulers
+        private const int TICK_SIZE = 5; // Size of tick marks on rulers
+        private const int MAJOR_TICK_INTERVAL = 100; // Interval for major tick marks (in paper space)
 
         #endregion
 
-        #region Fields and Properties
+        #region Public properties
 
-        public float Scale { get; set; } = 0.5f;
+        /// <summary>
+        /// Gets or sets whether snapping is enabled.
+        /// </summary>
+        public bool SnappingEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Scale factor for the paper size.
+        /// </summary>
+        public float ScalingFactor { get; set; } = 0.5f;
+        #endregion
+
+        #region Private fields 
+
+        private float a4WidthPixels;
+        private float a4HeightPixels;
         private List<TimetableDesignerTextField> textFields = new List<TimetableDesignerTextField>();
         private TimetableDesignerTextField selectedTextField;
         private PointF lastMousePosition;
@@ -42,6 +63,8 @@ namespace TimetableDesigner
         private List<TimetableDesignerSnapLine> snapLines = new List<TimetableDesignerSnapLine>();
         private TextBox editTextBox;
         private ContextMenuStrip contextMenu;
+        private Rectangle paperRect;
+        private float dpiX, dpiY;
 
         #endregion
 
@@ -84,7 +107,15 @@ namespace TimetableDesigner
         {
             base.OnPaint(e);
 
+            dpiX = e.Graphics.DpiX;
+            dpiY = e.Graphics.DpiY;
+            a4WidthPixels = MillimetersToPixelsX(A4_WIDTH_MM);
+            a4HeightPixels = MillimetersToPixelsY(A4_HEIGHT_MM);
+
+            paperRect = GetPaperRectangle();
+
             DrawPaper(e.Graphics);
+            DrawRulers(e.Graphics);
             DrawTextFields(e.Graphics);
             DrawSnapLines(e.Graphics);
         }
@@ -177,13 +208,89 @@ namespace TimetableDesigner
         /// </summary>
         private void DrawPaper(Graphics g)
         {
-            float paperWidth = A4_WIDTH * Scale;
-            float paperHeight = A4_HEIGHT * Scale;
+            float paperWidth = a4WidthPixels * ScalingFactor;
+            float paperHeight = a4HeightPixels * ScalingFactor;
             float x = (this.Width - paperWidth) / 2;
             float y = (this.Height - paperHeight) / 2;
 
             g.FillRectangle(Brushes.White, x, y, paperWidth, paperHeight);
             g.DrawRectangle(Pens.Black, x, y, paperWidth, paperHeight);
+        }
+
+        /// <summary>
+        /// Draws rulers on the border of the paper 
+        /// </summary>
+        /// <param name="g"></param>
+        private void DrawRulers(Graphics g)
+        {
+            // Draw ruler backgrounds
+            g.FillRectangle(SystemBrushes.Control, paperRect.Left, paperRect.Top - RULER_SIZE, paperRect.Width, RULER_SIZE); // Top ruler
+            g.FillRectangle(SystemBrushes.Control, paperRect.Left - RULER_SIZE, paperRect.Top, RULER_SIZE, paperRect.Height); // Left ruler
+
+            // Mark size
+            SizeF markSize = g.MeasureString("100", Font);
+
+            // Draw tick marks and numbers
+            for (int mm = 0; mm <= A4_WIDTH_MM; mm++)
+            {
+                float x = MillimetersToPixelsX(mm) * ScalingFactor + paperRect.Left;
+                int tickHeight = mm % MAJOR_TICK_INTERVAL == 0 ? TICK_SIZE * 2 : TICK_SIZE;
+                g.DrawLine(Pens.Black, x, paperRect.Top - tickHeight, x, paperRect.Top);
+
+                if (mm % MAJOR_TICK_INTERVAL == 0)
+                {
+                    g.DrawString(mm.ToString(), this.Font, Brushes.Black, x - 10, paperRect.Top - RULER_SIZE);
+                }
+            }
+
+            for (int mm = 0; mm <= A4_HEIGHT_MM; mm++)
+            {
+                float y = MillimetersToPixelsY(mm) * ScalingFactor + paperRect.Top;
+                int tickWidth = mm % MAJOR_TICK_INTERVAL == 0 ? TICK_SIZE * 2 : TICK_SIZE;
+                g.DrawLine(Pens.Black, paperRect.Left - tickWidth, y, paperRect.Left, y);
+
+                if (mm % MAJOR_TICK_INTERVAL == 0)
+                {
+                    g.DrawString(mm.ToString(), this.Font, Brushes.Black, paperRect.Left - markSize.Width - 4, y - 10);
+                }
+            }
+
+            // Draw position indicators for selected text field
+            if (selectedTextField != null)
+            {
+                DrawRulerPositionIndicators(g);
+            }
+        }
+
+        /// <summary>
+        /// Draw position indicators for selected text field
+        /// </summary>
+        /// <param name="g"></param>
+        private void DrawRulerPositionIndicators(Graphics g)
+        {
+            PointF fieldLocation = PaperToControl(selectedTextField.Location);
+
+            // Draw X position indicator
+            g.FillPolygon(Brushes.Red, new Point[] {
+                new Point((int)fieldLocation.X - 5, paperRect.Top - RULER_SIZE),
+                new Point((int)fieldLocation.X + 5, paperRect.Top - RULER_SIZE),
+                new Point((int)fieldLocation.X, paperRect.Top - RULER_SIZE + 5)
+            });
+
+            // Draw Y position indicator
+            g.FillPolygon(Brushes.Red, new Point[] {
+                new Point(paperRect.Left - RULER_SIZE, (int)fieldLocation.Y - 5),
+                new Point(paperRect.Left - RULER_SIZE, (int)fieldLocation.Y + 5),
+                new Point(paperRect.Left - RULER_SIZE + 5, (int)fieldLocation.Y)
+            });
+
+            SizeF markSize = g.MeasureString("100 mm", Font);
+
+            // Draw position values in millimeters
+            float xMm = PixelsToMillimetersX(selectedTextField.Location.X);
+            float yMm = PixelsToMillimetersY(selectedTextField.Location.Y);
+            g.DrawString($"{xMm:F0} mm", this.Font, Brushes.Black, fieldLocation.X - (markSize.Width / 2), paperRect.Top - RULER_SIZE - markSize.Height);
+            g.DrawString($"{yMm:F0} mm", this.Font, Brushes.Black, paperRect.Left - RULER_SIZE - markSize.Width, fieldLocation.Y - (markSize.Height / 2));
         }
 
         /// <summary>
@@ -194,7 +301,7 @@ namespace TimetableDesigner
             foreach (var textField in textFields)
             {
                 PointF fieldLocation = PaperToControl(textField.Location);
-                SizeF fieldSize = new SizeF(textField.Size.Width * Scale, textField.Size.Height * Scale);
+                SizeF fieldSize = new SizeF(textField.Size.Width * ScalingFactor, textField.Size.Height * ScalingFactor);
 
                 RectangleF rect = new RectangleF(fieldLocation, fieldSize);
                 DrawTextField(g, textField, rect);
@@ -252,6 +359,8 @@ namespace TimetableDesigner
         /// </summary>
         private void DrawSnapLines(Graphics g)
         {
+            if(!SnappingEnabled) return;
+
             using (Pen snapPen = new Pen(Color.Red, 1))
             {
                 snapPen.DashStyle = System.Drawing.Drawing2D.DashStyle.Dash;
@@ -290,10 +399,10 @@ namespace TimetableDesigner
 
                     // Check if mouse is over resize handle
                     RectangleF resizeHandle = new RectangleF(
-                        fieldRect.Right - RESIZE_HANDLE_SIZE / Scale,
-                        fieldRect.Bottom - RESIZE_HANDLE_SIZE / Scale,
-                        RESIZE_HANDLE_SIZE / Scale,
-                        RESIZE_HANDLE_SIZE / Scale);
+                        fieldRect.Right - RESIZE_HANDLE_SIZE / ScalingFactor,
+                        fieldRect.Bottom - RESIZE_HANDLE_SIZE / ScalingFactor,
+                        RESIZE_HANDLE_SIZE / ScalingFactor,
+                        RESIZE_HANDLE_SIZE / ScalingFactor);
 
                     if (resizeHandle.Contains(paperPosition))
                     {
@@ -328,8 +437,8 @@ namespace TimetableDesigner
             // Check if the text field is not moved outside the paper
             if (newLocation.X < 0) newLocation.X = 0;
             if (newLocation.Y < 0) newLocation.Y = 0;
-            if (newLocation.X + selectedTextField.Size.Width > A4_WIDTH) newLocation.X = A4_WIDTH - selectedTextField.Size.Width;
-            if (newLocation.Y + selectedTextField.Size.Height > A4_HEIGHT) newLocation.Y = A4_HEIGHT - selectedTextField.Size.Height;
+            if (newLocation.X + selectedTextField.Size.Width > a4WidthPixels) newLocation.X = a4WidthPixels - selectedTextField.Size.Width;
+            if (newLocation.Y + selectedTextField.Size.Height > a4HeightPixels) newLocation.Y = a4HeightPixels - selectedTextField.Size.Height;
 
             // Apply snapping
             newLocation = ApplySnapping(newLocation);
@@ -343,6 +452,8 @@ namespace TimetableDesigner
         /// </summary>
         private PointF ApplySnapping(PointF newLocation)
         {
+            if(!SnappingEnabled) return newLocation;
+
             snapLines.Clear();
             float snapX = newLocation.X;
             float snapY = newLocation.Y;
@@ -385,7 +496,7 @@ namespace TimetableDesigner
         private void StartEditingTextField(TimetableDesignerTextField textField)
         {
             PointF fieldLocation = PaperToControl(textField.Location);
-            SizeF fieldSize = new SizeF(textField.Size.Width * Scale, textField.Size.Height * Scale);
+            SizeF fieldSize = new SizeF(textField.Size.Width * ScalingFactor, textField.Size.Height * ScalingFactor);
 
             editTextBox.Location = Point.Round(fieldLocation);
             editTextBox.Size = Size.Round(fieldSize);
@@ -457,21 +568,54 @@ namespace TimetableDesigner
 
         #endregion
 
+        #region Unit Conversion
+
+        private float MillimetersToPixelsX(float mm)
+        {
+            return mm * dpiX / MM_PER_INCH;
+        }
+
+        private float MillimetersToPixelsY(float mm)
+        {
+            return mm * dpiY / MM_PER_INCH;
+        }
+
+        private float PixelsToMillimetersX(float pixels)
+        {
+            return pixels * MM_PER_INCH / dpiX;
+        }
+
+        private float PixelsToMillimetersY(float pixels)
+        {
+            return pixels * MM_PER_INCH / dpiY;
+        }
+
+        #endregion
+
         #region Coordinate Conversion
+
+        /// <summary>
+        /// Gets the rectangle of the paper in control coordinates.
+        /// </summary>
+        /// <returns></returns>
+        private Rectangle GetPaperRectangle()
+        {
+            float paperWidth = a4WidthPixels * ScalingFactor;
+            float paperHeight = a4HeightPixels * ScalingFactor;
+            float x = (this.Width - paperWidth) / 2;
+            float y = (this.Height - paperHeight) / 2;
+
+            return new Rectangle((int)x, (int)y, (int)paperWidth, (int)paperHeight);
+        }
 
         /// <summary>
         /// Converts paper coordinates to control coordinates.
         /// </summary>
         private PointF PaperToControl(PointF paperLocation)
         {
-            float paperWidth = A4_WIDTH * Scale;
-            float paperHeight = A4_HEIGHT * Scale;
-            float x = (this.Width - paperWidth) / 2;
-            float y = (this.Height - paperHeight) / 2;
-
             return new PointF(
-                x + paperLocation.X * Scale,
-                y + paperLocation.Y * Scale
+                paperRect.X + paperLocation.X * ScalingFactor,
+                paperRect.Y + paperLocation.Y * ScalingFactor
             );
         }
 
@@ -480,14 +624,9 @@ namespace TimetableDesigner
         /// </summary>
         private PointF ControlToPaper(PointF controlLocation)
         {
-            float paperWidth = A4_WIDTH * Scale;
-            float paperHeight = A4_HEIGHT * Scale;
-            float x = (this.Width - paperWidth) / 2;
-            float y = (this.Height - paperHeight) / 2;
-
             return new PointF(
-                (controlLocation.X - x) / Scale,
-                (controlLocation.Y - y) / Scale
+                (controlLocation.X - paperRect.X) / ScalingFactor,
+                (controlLocation.Y - paperRect.Y) / ScalingFactor
             );
         }
 
@@ -532,10 +671,10 @@ namespace TimetableDesigner
         private void AddTextFieldToPdf(Document document, TimetableDesignerTextField textField, PdfFont font, float pdfWidth, float pdfHeight)
         {
             // Convert coordinates and size from paper space to PDF space
-            float x = ConvertToPdfSpace(textField.Location.X, A4_WIDTH, pdfWidth);
-            float y = pdfHeight - ConvertToPdfSpace(textField.Location.Y + textField.Size.Height, A4_HEIGHT, pdfHeight);
-            float width = ConvertToPdfSpace(textField.Size.Width, A4_WIDTH, pdfWidth);
-            float height = ConvertToPdfSpace(textField.Size.Height, A4_HEIGHT, pdfHeight);
+            float x = ConvertToPdfSpace(textField.Location.X, a4WidthPixels, pdfWidth);
+            float y = pdfHeight - ConvertToPdfSpace(textField.Location.Y + textField.Size.Height, a4HeightPixels, pdfHeight);
+            float width = ConvertToPdfSpace(textField.Size.Width, a4WidthPixels, pdfWidth);
+            float height = ConvertToPdfSpace(textField.Size.Height, a4HeightPixels, pdfHeight);
 
             Paragraph p = new Paragraph(textField.Text)
                 .SetFont(font)

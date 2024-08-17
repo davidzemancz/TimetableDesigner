@@ -28,40 +28,32 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
             this.tsMain = new System.Windows.Forms.ToolStrip();
-            this.tsbPrintTest1 = new System.Windows.Forms.ToolStripButton();
             this.tsbZoomIn = new System.Windows.Forms.ToolStripButton();
             this.tsbZoomOut = new System.Windows.Forms.ToolStripButton();
             this.tsbAddTextField = new System.Windows.Forms.ToolStripButton();
-            this.reportDesigner1 = new global::TimetableDesigner.TimetableDesigner();
             this.tsbSavePdf = new System.Windows.Forms.ToolStripButton();
+            this.reportDesigner1 = new TimetableDesigner();
+            this.tsbSnapping = new System.Windows.Forms.ToolStripButton();
             this.tsMain.SuspendLayout();
             this.SuspendLayout();
             // 
             // tsMain
             // 
             this.tsMain.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsbPrintTest1,
             this.tsbZoomIn,
             this.tsbZoomOut,
             this.tsbAddTextField,
-            this.tsbSavePdf});
+            this.tsbSavePdf,
+            this.tsbSnapping});
             this.tsMain.Location = new System.Drawing.Point(0, 0);
             this.tsMain.Name = "tsMain";
             this.tsMain.Size = new System.Drawing.Size(1206, 25);
             this.tsMain.TabIndex = 0;
             this.tsMain.Text = "toolStrip1";
             this.tsMain.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.tsMain_ItemClicked);
-            // 
-            // tsbPrintTest1
-            // 
-            this.tsbPrintTest1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.tsbPrintTest1.Image = ((System.Drawing.Image)(resources.GetObject("tsbPrintTest1.Image")));
-            this.tsbPrintTest1.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.tsbPrintTest1.Name = "tsbPrintTest1";
-            this.tsbPrintTest1.Size = new System.Drawing.Size(67, 22);
-            this.tsbPrintTest1.Text = "Print test 1";
             // 
             // tsbZoomIn
             // 
@@ -90,15 +82,6 @@
             this.tsbAddTextField.Size = new System.Drawing.Size(82, 22);
             this.tsbAddTextField.Text = "Add text field";
             // 
-            // reportDesigner1
-            // 
-            this.reportDesigner1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.reportDesigner1.Location = new System.Drawing.Point(0, 25);
-            this.reportDesigner1.Name = "reportDesigner1";
-            this.reportDesigner1.Scale = 0.5F;
-            this.reportDesigner1.Size = new System.Drawing.Size(1206, 865);
-            this.reportDesigner1.TabIndex = 1;
-            // 
             // tsbSavePdf
             // 
             this.tsbSavePdf.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
@@ -107,6 +90,27 @@
             this.tsbSavePdf.Name = "tsbSavePdf";
             this.tsbSavePdf.Size = new System.Drawing.Size(56, 22);
             this.tsbSavePdf.Text = "Save pdf";
+            // 
+            // reportDesigner1
+            // 
+            this.reportDesigner1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.reportDesigner1.Location = new System.Drawing.Point(0, 25);
+            this.reportDesigner1.Name = "reportDesigner1";
+            this.reportDesigner1.ScalingFactor = 0.5F;
+            this.reportDesigner1.Size = new System.Drawing.Size(1206, 865);
+            this.reportDesigner1.TabIndex = 1;
+            // 
+            // tsbSnapping
+            // 
+            this.tsbSnapping.Checked = true;
+            this.tsbSnapping.CheckOnClick = true;
+            this.tsbSnapping.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.tsbSnapping.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsbSnapping.Image = ((System.Drawing.Image)(resources.GetObject("tsbSnapping.Image")));
+            this.tsbSnapping.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsbSnapping.Name = "tsbSnapping";
+            this.tsbSnapping.Size = new System.Drawing.Size(61, 22);
+            this.tsbSnapping.Text = "Snapping";
             // 
             // FormMain
             // 
@@ -127,12 +131,12 @@
         #endregion
 
         private System.Windows.Forms.ToolStrip tsMain;
-        private System.Windows.Forms.ToolStripButton tsbPrintTest1;
         private TimetableDesigner reportDesigner1;
         private System.Windows.Forms.ToolStripButton tsbZoomIn;
         private System.Windows.Forms.ToolStripButton tsbZoomOut;
         private System.Windows.Forms.ToolStripButton tsbAddTextField;
         private System.Windows.Forms.ToolStripButton tsbSavePdf;
+        private System.Windows.Forms.ToolStripButton tsbSnapping;
     }
 }
 
