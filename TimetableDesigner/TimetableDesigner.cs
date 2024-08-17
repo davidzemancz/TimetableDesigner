@@ -851,7 +851,7 @@ namespace TimetableDesigner
                     Location = new PointF(selectedTextField.Location.X + 20, selectedTextField.Location.Y + 20),
                     Size = selectedTextField.Size,
                     Font = new Font(selectedTextField.Font.FontFamily, selectedTextField.Font.Size, selectedTextField.Font.Style),
-                    TextColor = selectedTextField.Te
+                    TextColor = selectedTextField.TextColor
                 };
 
                 textFields.Add(newTextField);
