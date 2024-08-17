@@ -94,25 +94,25 @@ namespace TimetableDesigner
 
         private void FormMain_Load(object sender, EventArgs e)
         {
-            reportDesigner1.ScalingFactor = 0.5f;
+            reportDesigner1.ScaleFactor = 0.65f;
         }
 
         private void tsMain_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
             if (e.ClickedItem == tsbZoomIn)
             {
-                reportDesigner1.ScalingFactor += 0.1f;
+                reportDesigner1.ScaleFactor += 0.1f;
                 reportDesigner1.Invalidate();
             }
             else if (e.ClickedItem == tsbZoomOut)
             {
-                reportDesigner1.ScalingFactor -= 0.1f;
+                reportDesigner1.ScaleFactor -= 0.1f;
                 reportDesigner1.Invalidate();
             }
             else if (e.ClickedItem == tsbAddTextField)
             {
                 FontDialog fontDialog = new FontDialog();
-                fontDialog.Font = Font;
+                fontDialog.Font = new Font("Segoe UI", 12);
                 fontDialog.ShowColor = true;
                 var dr = fontDialog.ShowDialog();
                 if(dr != DialogResult.OK) return;
@@ -143,6 +143,10 @@ namespace TimetableDesigner
             else if (e.ClickedItem == tsbSnapping)
             {
                 reportDesigner1.SnappingEnabled = !tsbSnapping.Checked;
+            }
+            else if (e.ClickedItem == tsbScalingFont)
+            {
+                reportDesigner1.ScaleFontWhileResizing = !tsbScalingFont.Checked;
             }
         }
 

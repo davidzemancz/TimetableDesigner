@@ -38,6 +38,7 @@
             this.tsbSavePdf = new System.Windows.Forms.ToolStripButton();
             this.fontDialog1 = new System.Windows.Forms.FontDialog();
             this.reportDesigner1 = new TimetableDesigner();
+            this.tsbScalingFont = new System.Windows.Forms.ToolStripButton();
             this.tsMain.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -47,6 +48,7 @@
             this.tsbZoomIn,
             this.tsbZoomOut,
             this.tsbAddTextField,
+            this.tsbScalingFont,
             this.tsbSnapping,
             this.tsbSavePdf});
             this.tsMain.Location = new System.Drawing.Point(0, 0);
@@ -109,10 +111,21 @@
             this.reportDesigner1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.reportDesigner1.Location = new System.Drawing.Point(0, 25);
             this.reportDesigner1.Name = "reportDesigner1";
-            this.reportDesigner1.ScalingFactor = 1F;
+            this.reportDesigner1.ScaleFactor = 1F;
+            this.reportDesigner1.ScaleFontWhileResizing = false;
             this.reportDesigner1.Size = new System.Drawing.Size(1206, 865);
             this.reportDesigner1.SnappingEnabled = true;
             this.reportDesigner1.TabIndex = 1;
+            // 
+            // tsbScalingFont
+            // 
+            this.tsbScalingFont.CheckOnClick = true;
+            this.tsbScalingFont.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsbScalingFont.Image = ((System.Drawing.Image)(resources.GetObject("tsbScalingFont.Image")));
+            this.tsbScalingFont.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsbScalingFont.Name = "tsbScalingFont";
+            this.tsbScalingFont.Size = new System.Drawing.Size(137, 22);
+            this.tsbScalingFont.Text = "Scale font while resizing";
             // 
             // FormMain
             // 
@@ -141,6 +154,7 @@
         private System.Windows.Forms.ToolStripButton tsbSavePdf;
         private System.Windows.Forms.ToolStripButton tsbSnapping;
         private System.Windows.Forms.FontDialog fontDialog1;
+        private System.Windows.Forms.ToolStripButton tsbScalingFont;
     }
 }
 
