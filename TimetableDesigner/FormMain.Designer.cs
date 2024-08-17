@@ -34,7 +34,7 @@
             this.tsbZoomIn = new System.Windows.Forms.ToolStripButton();
             this.tsbZoomOut = new System.Windows.Forms.ToolStripButton();
             this.tsbAddTextField = new System.Windows.Forms.ToolStripButton();
-            this.reportDesigner1 = new TimetableDesigner.ReportDesigner();
+            this.reportDesigner1 = new global::TimetableDesigner.TimetableDesigner();
             this.tsbSavePdf = new System.Windows.Forms.ToolStripButton();
             this.tsMain.SuspendLayout();
             this.SuspendLayout();
@@ -128,7 +128,7 @@
 
         private System.Windows.Forms.ToolStrip tsMain;
         private System.Windows.Forms.ToolStripButton tsbPrintTest1;
-        private ReportDesigner reportDesigner1;
+        private TimetableDesigner reportDesigner1;
         private System.Windows.Forms.ToolStripButton tsbZoomIn;
         private System.Windows.Forms.ToolStripButton tsbZoomOut;
         private System.Windows.Forms.ToolStripButton tsbAddTextField;
