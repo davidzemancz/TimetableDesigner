@@ -106,7 +106,12 @@ namespace TimetableDesigner
             }
             else if (e.ClickedItem == tsbAddTextField)
             {
-                reportDesigner1.AddTextField("textField", new Point(0, 0), new Size(100, 30));
+                FontDialog fontDialog = new FontDialog();
+                fontDialog.Font = Font;
+                fontDialog.ShowColor = true;
+                var dr = fontDialog.ShowDialog();
+                if(dr != DialogResult.OK) return;
+                reportDesigner1.AddTextField("textField", new Point(0, 0), new Size(100, 30), fontDialog.Font, fontDialog.Color);
             }
             else if (e.ClickedItem == tsbSavePdf)
             {
@@ -137,5 +142,7 @@ namespace TimetableDesigner
         }
 
         #endregion
+
+       
     }
 }

@@ -35,8 +35,9 @@
             this.tsbZoomOut = new System.Windows.Forms.ToolStripButton();
             this.tsbAddTextField = new System.Windows.Forms.ToolStripButton();
             this.tsbSavePdf = new System.Windows.Forms.ToolStripButton();
-            this.reportDesigner1 = new TimetableDesigner();
             this.tsbSnapping = new System.Windows.Forms.ToolStripButton();
+            this.reportDesigner1 = new TimetableDesigner();
+            this.fontDialog1 = new System.Windows.Forms.FontDialog();
             this.tsMain.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -46,8 +47,8 @@
             this.tsbZoomIn,
             this.tsbZoomOut,
             this.tsbAddTextField,
-            this.tsbSavePdf,
-            this.tsbSnapping});
+            this.tsbSnapping,
+            this.tsbSavePdf});
             this.tsMain.Location = new System.Drawing.Point(0, 0);
             this.tsMain.Name = "tsMain";
             this.tsMain.Size = new System.Drawing.Size(1206, 25);
@@ -88,17 +89,8 @@
             this.tsbSavePdf.Image = ((System.Drawing.Image)(resources.GetObject("tsbSavePdf.Image")));
             this.tsbSavePdf.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.tsbSavePdf.Name = "tsbSavePdf";
-            this.tsbSavePdf.Size = new System.Drawing.Size(56, 22);
-            this.tsbSavePdf.Text = "Save pdf";
-            // 
-            // reportDesigner1
-            // 
-            this.reportDesigner1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.reportDesigner1.Location = new System.Drawing.Point(0, 25);
-            this.reportDesigner1.Name = "reportDesigner1";
-            this.reportDesigner1.ScalingFactor = 0.5F;
-            this.reportDesigner1.Size = new System.Drawing.Size(1206, 865);
-            this.reportDesigner1.TabIndex = 1;
+            this.tsbSavePdf.Size = new System.Drawing.Size(73, 22);
+            this.tsbSavePdf.Text = "Save to .pdf";
             // 
             // tsbSnapping
             // 
@@ -111,6 +103,16 @@
             this.tsbSnapping.Name = "tsbSnapping";
             this.tsbSnapping.Size = new System.Drawing.Size(61, 22);
             this.tsbSnapping.Text = "Snapping";
+            // 
+            // reportDesigner1
+            // 
+            this.reportDesigner1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.reportDesigner1.Location = new System.Drawing.Point(0, 25);
+            this.reportDesigner1.Name = "reportDesigner1";
+            this.reportDesigner1.ScalingFactor = 0.5F;
+            this.reportDesigner1.Size = new System.Drawing.Size(1206, 865);
+            this.reportDesigner1.SnappingEnabled = true;
+            this.reportDesigner1.TabIndex = 1;
             // 
             // FormMain
             // 
@@ -137,6 +139,7 @@
         private System.Windows.Forms.ToolStripButton tsbAddTextField;
         private System.Windows.Forms.ToolStripButton tsbSavePdf;
         private System.Windows.Forms.ToolStripButton tsbSnapping;
+        private System.Windows.Forms.FontDialog fontDialog1;
     }
 }
 

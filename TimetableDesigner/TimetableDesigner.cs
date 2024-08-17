@@ -1,4 +1,5 @@
-﻿using iText.IO.Font.Constants;
+﻿using iText.IO.Font;
+using iText.IO.Font.Constants;
 using iText.Kernel.Colors;
 using iText.Kernel.Font;
 using iText.Kernel.Geom;
@@ -9,6 +10,7 @@ using iText.Layout.Element;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using System.Windows.Forms.Design.Behavior;
@@ -26,7 +28,7 @@ namespace TimetableDesigner
         #region Constants
 
         // A4 paper dimensions in pixels at 100% scale
-        
+
         private const float A4_WIDTH_MM = 210;
         private const float A4_HEIGHT_MM = 297;
         private const float MM_PER_INCH = 25.4f;
@@ -94,6 +96,26 @@ namespace TimetableDesigner
             contextMenu.Items.Add(duplicateItem);
 
             this.ContextMenuStrip = contextMenu;
+        }
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Adds a new text field to the timetable.
+        /// </summary>
+        public void AddTextField(string text, PointF location, SizeF size, Font font, Color color)
+        {
+            textFields.Add(new TimetableDesignerTextField
+            {
+                Text = text,
+                Location = location,
+                Size = size,
+                Font = font,
+                TextColor = color
+            });
+            this.Invalidate();
         }
 
         #endregion
@@ -200,6 +222,7 @@ namespace TimetableDesigner
         }
 
         #endregion
+
 
         #region Drawing Methods
 
@@ -323,14 +346,14 @@ namespace TimetableDesigner
                 g.DrawRectangle(Pens.Blue, rect.X, rect.Y, rect.Width, rect.Height);
             }
 
-            DrawWrappedText(g, textField.Text, rect);
+            DrawWrappedText(g, textField.Text, rect, textField.Font, textField.TextColor);
             DrawResizeHandle(g, rect);
         }
 
         /// <summary>
         /// Draws wrapped text within a rectangle.
         /// </summary>
-        private void DrawWrappedText(Graphics g, string text, RectangleF rect)
+        private void DrawWrappedText(Graphics g, string text, RectangleF rect, Font font, Color textColor)
         {
             using (StringFormat sf = new StringFormat())
             {
@@ -339,7 +362,10 @@ namespace TimetableDesigner
                 sf.Trimming = StringTrimming.Word;
                 sf.FormatFlags = StringFormatFlags.LineLimit;
 
-                g.DrawString(text, this.Font, Brushes.Black, rect, sf);
+                using (Brush textBrush = new SolidBrush(textColor))
+                {
+                    g.DrawString(text, font, textBrush, rect, sf);
+                }
             }
         }
 
@@ -359,7 +385,7 @@ namespace TimetableDesigner
         /// </summary>
         private void DrawSnapLines(Graphics g)
         {
-            if(!SnappingEnabled) return;
+            if (!SnappingEnabled) return;
 
             using (Pen snapPen = new Pen(Color.Red, 1))
             {
@@ -452,7 +478,7 @@ namespace TimetableDesigner
         /// </summary>
         private PointF ApplySnapping(PointF newLocation)
         {
-            if(!SnappingEnabled) return newLocation;
+            if (!SnappingEnabled) return newLocation;
 
             snapLines.Clear();
             float snapX = newLocation.X;
@@ -501,6 +527,8 @@ namespace TimetableDesigner
             editTextBox.Location = Point.Round(fieldLocation);
             editTextBox.Size = Size.Round(fieldSize);
             editTextBox.Text = textField.Text;
+            editTextBox.Font = textField.Font;
+            editTextBox.ForeColor = textField.TextColor;
             editTextBox.Tag = textField;
             editTextBox.Multiline = true;
             editTextBox.Visible = true;
@@ -552,19 +580,7 @@ namespace TimetableDesigner
             this.Invalidate();
         }
 
-        /// <summary>
-        /// Adds a new text field to the timetable.
-        /// </summary>
-        public void AddTextField(string text, PointF location, SizeF size)
-        {
-            textFields.Add(new TimetableDesignerTextField
-            {
-                Text = text,
-                Location = location,
-                Size = size
-            });
-            this.Invalidate();
-        }
+
 
         #endregion
 
@@ -639,6 +655,7 @@ namespace TimetableDesigner
         /// </summary>
         public void ExportToPdf(string filePath)
         {
+            PdfFontFactory.RegisterSystemDirectories();
             using (PdfWriter writer = new PdfWriter(filePath))
             using (PdfDocument pdf = new PdfDocument(writer))
             {
@@ -657,7 +674,7 @@ namespace TimetableDesigner
                 // Add text fields to the PDF
                 foreach (var textField in textFields)
                 {
-                    AddTextFieldToPdf(document, textField, font, pdfWidth, pdfHeight);
+                    AddTextFieldToPdf(document, textField, pdfWidth, pdfHeight);
                 }
 
                 // Close the document
@@ -668,7 +685,7 @@ namespace TimetableDesigner
         /// <summary>
         /// Adds a single text field to the PDF document.
         /// </summary>
-        private void AddTextFieldToPdf(Document document, TimetableDesignerTextField textField, PdfFont font, float pdfWidth, float pdfHeight)
+        private void AddTextFieldToPdf(Document document, TimetableDesignerTextField textField, float pdfWidth, float pdfHeight)
         {
             // Convert coordinates and size from paper space to PDF space
             float x = ConvertToPdfSpace(textField.Location.X, a4WidthPixels, pdfWidth);
@@ -676,16 +693,42 @@ namespace TimetableDesigner
             float width = ConvertToPdfSpace(textField.Size.Width, a4WidthPixels, pdfWidth);
             float height = ConvertToPdfSpace(textField.Size.Height, a4HeightPixels, pdfHeight);
 
+            PdfFont pdfFont = PdfFontFactory.CreateRegisteredFont(textField.Font.FontFamily.Name, PdfEncodings.IDENTITY_H, PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED, ConvertWeightToPdfStyleInteger(textField.Font.Bold, textField.Font.Italic), true);
+
+            iText.Kernel.Colors.Color pdfColor = iText.Kernel.Colors.Color.CreateColorWithColorSpace(new float[] { textField.TextColor.R, textField.TextColor.G, textField.TextColor.B });
+
             Paragraph p = new Paragraph(textField.Text)
-                .SetFont(font)
-                .SetFontSize(12)
-                .SetFontColor(ColorConstants.BLACK)
+                .SetFont(pdfFont)
+                .SetFontSize(textField.Font.Size)
+                .SetFontColor(pdfColor)
                 .SetFixedPosition(x, y, width)
                 .SetWidth(width)
                 .SetHeight(height);
 
             document.Add(p);
         }
+
+        public int ConvertWeightToPdfStyleInteger(bool bold, bool italic)
+        {
+          if(bold && italic)
+            {
+                return iText.IO.Font.Constants.FontStyles.BOLDITALIC;
+            }
+            else if (bold)
+            {
+                return iText.IO.Font.Constants.FontStyles.BOLD;
+            }
+            else if (italic)
+            {
+                return iText.IO.Font.Constants.FontStyles.ITALIC;
+            }
+            else
+            {
+                return iText.IO.Font.Constants.FontStyles.NORMAL;
+            }
+
+        }
+
 
         /// <summary>
         /// Converts a value from paper space to PDF space.
@@ -730,6 +773,8 @@ namespace TimetableDesigner
         public string Text { get; set; }
         public PointF Location { get; set; }
         public SizeF Size { get; set; }
+        public Font Font { get; set; }
+        public Color TextColor { get; set; }
     }
 
     /// <summary>
