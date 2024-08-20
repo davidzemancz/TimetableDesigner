@@ -157,8 +157,6 @@ namespace TimetableDesignerApp
                 EndPoint = endPoint,
                 LineColor = lineColor,
                 LineWidth = lineWidth,
-                Location = startPoint, // For selection purposes, Location can be StartPoint
-                Size = new SizeF(Math.Abs(endPoint.X - startPoint.X), Math.Abs(endPoint.Y - startPoint.Y)) // Size isn't used for drawing, but helps with selection and snapping
             });
             this.Invalidate();
         }
@@ -485,6 +483,7 @@ namespace TimetableDesignerApp
                 else if (element is TimetableDesignerLine line)
                 {
                     DrawLine(g, line);
+                    if (element == selectedElement) DrawResizeHandle(g, rect);
                 }
                 
             }
@@ -612,20 +611,36 @@ namespace TimetableDesignerApp
 
             foreach (var element in elements.Reverse<TimetableDesignerElement>())
             {
+                RectangleF elementRect = new RectangleF(element.Location, element.Size);
                 if (element is TimetableDesignerLine line)
                 {
                     if (IsPointNearLine(line, paperPosition))
                     {
                         selectedElement = line;
+
+                        // Check if mouse is over resize handle
+                        RectangleF resizeHandle = GetFieldResizeHandle(elementRect);
+                        if (resizeHandle.Contains(paperPosition))
+                        {
+                            isResizing = true;
+                        }
+
                         break;
                     }
                 }
                 else
                 {
-                    RectangleF fieldRect = new RectangleF(element.Location, element.Size);
-                    if (fieldRect.Contains(paperPosition))
+                    if (elementRect.Contains(paperPosition))
                     {
                         selectedElement = element;
+
+                        // Check if mouse is over resize handle
+                        RectangleF resizeHandle = GetFieldResizeHandle(elementRect);
+                        if (resizeHandle.Contains(paperPosition))
+                        {
+                            isResizing = true;
+                        }
+
                         break;
                     }
                 }
@@ -697,8 +712,7 @@ namespace TimetableDesignerApp
 
                 line.StartPoint = startPoint;
                 line.EndPoint = endPoint;
-                line.Location = startPoint; // For selection purposes, Location can be StartPoint
-                line.Size = new SizeF(Math.Abs(endPoint.X - startPoint.X), Math.Abs(endPoint.Y - startPoint.Y)); // Size isn't used for drawing, but helps with selection and snapping
+                
             }
             else
             {
@@ -1053,8 +1067,8 @@ namespace TimetableDesignerApp
     /// </summary>
     public abstract class TimetableDesignerElement
     {
-        public PointF Location { get; set; }
-        public SizeF Size { get; set; }
+        public virtual PointF Location { get; set; }
+        public virtual SizeF Size { get; set; }
 
         public virtual TimetableDesignerElement Clone()
         {
@@ -1100,8 +1114,48 @@ namespace TimetableDesignerApp
     
     public class TimetableDesignerLine : TimetableDesignerElement
     {
-        public PointF StartPoint { get; set; }
-        public PointF EndPoint { get; set; }
+        private PointF startPoint;
+        private PointF endPoint;
+
+        public PointF StartPoint
+        {
+            get => startPoint;
+            set
+            {
+                startPoint = value;
+                base.Location = startPoint;
+                Size = new SizeF(Math.Abs(endPoint.X - startPoint.X), Math.Abs(endPoint.Y - startPoint.Y));
+            }
+        }
+        public PointF EndPoint 
+        { 
+            get => endPoint; 
+            set
+            { 
+                endPoint = value;
+                base.Size = new SizeF(Math.Abs(EndPoint.X - startPoint.X), Math.Abs(EndPoint.Y - startPoint.Y));
+            }
+        }
+        public override PointF Location 
+        { 
+            get => base.Location;
+            set
+            {
+                base.Location = value;
+                StartPoint = value;
+            } 
+        }
+
+        public override SizeF Size
+        {
+            get => base.Size;
+            set
+            {
+                base.Size = value;
+                EndPoint = new PointF(StartPoint.X + value.Width, StartPoint.Y + value.Height);
+            }
+        }
+
         public Color LineColor { get; set; }
         public float LineWidth { get; set; }
 
