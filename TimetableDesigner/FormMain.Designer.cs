@@ -42,6 +42,9 @@
             this.reportDesigner1 = new TimetableDesignerApp.TimetableDesigner();
             this.tsElements = new System.Windows.Forms.ToolStrip();
             this.tsbAddTextField = new System.Windows.Forms.ToolStripButton();
+            this.tsBtnAddRect = new System.Windows.Forms.ToolStripButton();
+            this.tsBtnAddFilledRect = new System.Windows.Forms.ToolStripButton();
+            this.tsBtnAddLine = new System.Windows.Forms.ToolStripButton();
             this.tsActions.SuspendLayout();
             this.reportDesigner1.SuspendLayout();
             this.tsElements.SuspendLayout();
@@ -143,7 +146,10 @@
             // tsElements
             // 
             this.tsElements.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsbAddTextField});
+            this.tsbAddTextField,
+            this.tsBtnAddRect,
+            this.tsBtnAddFilledRect,
+            this.tsBtnAddLine});
             this.tsElements.Location = new System.Drawing.Point(0, 0);
             this.tsElements.Name = "tsElements";
             this.tsElements.Size = new System.Drawing.Size(1206, 25);
@@ -159,6 +165,33 @@
             this.tsbAddTextField.Name = "tsbAddTextField";
             this.tsbAddTextField.Size = new System.Drawing.Size(82, 22);
             this.tsbAddTextField.Text = "Add text field";
+            // 
+            // tsBtnAddRect
+            // 
+            this.tsBtnAddRect.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsBtnAddRect.Image = ((System.Drawing.Image)(resources.GetObject("tsBtnAddRect.Image")));
+            this.tsBtnAddRect.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsBtnAddRect.Name = "tsBtnAddRect";
+            this.tsBtnAddRect.Size = new System.Drawing.Size(85, 22);
+            this.tsBtnAddRect.Text = "Add rectangle";
+            // 
+            // tsBtnAddFilledRect
+            // 
+            this.tsBtnAddFilledRect.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsBtnAddFilledRect.Image = ((System.Drawing.Image)(resources.GetObject("tsBtnAddFilledRect.Image")));
+            this.tsBtnAddFilledRect.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsBtnAddFilledRect.Name = "tsBtnAddFilledRect";
+            this.tsBtnAddFilledRect.Size = new System.Drawing.Size(114, 22);
+            this.tsBtnAddFilledRect.Text = "Add filled rectangle";
+            // 
+            // tsBtnAddLine
+            // 
+            this.tsBtnAddLine.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsBtnAddLine.Image = ((System.Drawing.Image)(resources.GetObject("tsBtnAddLine.Image")));
+            this.tsBtnAddLine.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsBtnAddLine.Name = "tsBtnAddLine";
+            this.tsBtnAddLine.Size = new System.Drawing.Size(55, 22);
+            this.tsBtnAddLine.Text = "Add line";
             // 
             // FormMain
             // 
@@ -195,6 +228,9 @@
         private System.Windows.Forms.ToolStripTextBox tsTxbMargin;
         private System.Windows.Forms.ToolStrip tsElements;
         private System.Windows.Forms.ToolStripButton tsbAddTextField;
+        private System.Windows.Forms.ToolStripButton tsBtnAddFilledRect;
+        private System.Windows.Forms.ToolStripButton tsBtnAddRect;
+        private System.Windows.Forms.ToolStripButton tsBtnAddLine;
     }
 }
 
