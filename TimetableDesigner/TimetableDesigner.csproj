@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{7EAE4900-CF9A-4548-A6C0-9C0840772033}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>TimetableDesigner</RootNamespace>
+    <RootNamespace>TimetableDesignerApp</RootNamespace>
     <AssemblyName>TimetableDesigner</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -158,6 +158,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">

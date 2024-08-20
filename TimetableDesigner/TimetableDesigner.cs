@@ -18,7 +18,7 @@ using Color = System.Drawing.Color;
 using Point = System.Drawing.Point;
 using Rectangle = System.Drawing.Rectangle;
 
-namespace TimetableDesigner
+namespace TimetableDesignerApp
 {
     /// <summary>
     /// A custom panel for designing reports with text fields and alignment features.
@@ -50,12 +50,17 @@ namespace TimetableDesigner
         /// <summary>
         /// Scale factor for the paper size.
         /// </summary>
-        public float ScaleFactor { get; set; } = 1;
+        public float ScaleFactor { get; set; } = 0.5f;
 
         /// <summary>
         /// Scale elements font size while resizing.
         /// </summary>
         public bool ScaleFontWhileResizing { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets the margins for the paper in millimeters.
+        /// </summary>
+        public Padding PaperMargin { get; set; } = new Padding(10); // Default 10mm margin on all sides
 
         #endregion
 
@@ -270,7 +275,6 @@ namespace TimetableDesigner
 
         #endregion
 
-
         #region Drawing Methods
 
         /// <summary>
@@ -285,6 +289,35 @@ namespace TimetableDesigner
 
             g.FillRectangle(Brushes.White, x, y, paperWidth, paperHeight);
             g.DrawRectangle(Pens.Black, x, y, paperWidth, paperHeight);
+
+            DrawMarginLines(g, x, y, paperWidth, paperHeight);
+        }
+
+        /// <summary>
+        /// Draws margin lines on the paper.
+        /// </summary>
+        private void DrawMarginLines(Graphics g, float x, float y, float paperWidth, float paperHeight)
+        {
+            using (Pen marginPen = new Pen(Color.LightGray, 1))
+            {
+                marginPen.DashStyle = System.Drawing.Drawing2D.DashStyle.Dash;
+
+                // Left margin
+                float leftMargin = x + MillimetersToPixelsX(PaperMargin.Left) * ScaleFactor;
+                g.DrawLine(marginPen, leftMargin, y, leftMargin, y + paperHeight);
+
+                // Right margin
+                float rightMargin = x + paperWidth - MillimetersToPixelsX(PaperMargin.Right) * ScaleFactor;
+                g.DrawLine(marginPen, rightMargin, y, rightMargin, y + paperHeight);
+
+                // Top margin
+                float topMargin = y + MillimetersToPixelsY(PaperMargin.Top) * ScaleFactor;
+                g.DrawLine(marginPen, x, topMargin, x + paperWidth, topMargin);
+
+                // Bottom margin
+                float bottomMargin = y + paperHeight - MillimetersToPixelsY(PaperMargin.Bottom) * ScaleFactor;
+                g.DrawLine(marginPen, x, bottomMargin, x + paperWidth, bottomMargin);
+            }
         }
 
         /// <summary>

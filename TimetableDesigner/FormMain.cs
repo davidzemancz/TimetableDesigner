@@ -12,7 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace TimetableDesigner
+namespace TimetableDesignerApp
 {
     public partial class FormMain : Form
     {
@@ -95,9 +95,10 @@ namespace TimetableDesigner
         private void FormMain_Load(object sender, EventArgs e)
         {
             reportDesigner1.ScaleFactor = 0.65f;
+            tsTxbMargin.Text = reportDesigner1.PaperMargin.Left.ToString();
         }
 
-        private void tsMain_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        private void tsActions_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
             if (e.ClickedItem == tsbZoomIn)
             {
@@ -108,15 +109,6 @@ namespace TimetableDesigner
             {
                 reportDesigner1.ScaleFactor -= 0.1f;
                 reportDesigner1.Invalidate();
-            }
-            else if (e.ClickedItem == tsbAddTextField)
-            {
-                FontDialog fontDialog = new FontDialog();
-                fontDialog.Font = new Font("Segoe UI", 12);
-                fontDialog.ShowColor = true;
-                var dr = fontDialog.ShowDialog();
-                if(dr != DialogResult.OK) return;
-                reportDesigner1.AddTextField("textField", new Point(0, 0), new Size(100, 30), fontDialog.Font, fontDialog.Color);
             }
             else if (e.ClickedItem == tsbSavePdf)
             {
@@ -150,9 +142,28 @@ namespace TimetableDesigner
             }
         }
 
+        private void tsTxbMargin_TextChanged(object sender, EventArgs e)
+        {
+            int.TryParse(tsTxbMargin.Text, out int margin);
+            reportDesigner1.PaperMargin = new Padding(margin);
+            reportDesigner1.Invalidate();
+        }
+
+        private void tsElements_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+            if (e.ClickedItem == tsbAddTextField)
+            {
+                FontDialog fontDialog = new FontDialog();
+                fontDialog.Font = new Font("Segoe UI", 12);
+                fontDialog.ShowColor = true;
+                var dr = fontDialog.ShowDialog();
+                if (dr != DialogResult.OK) return;
+                reportDesigner1.AddTextField("textField", new Point(0, 0), new Size(100, 30), fontDialog.Font, fontDialog.Color);
+            }
+        }
 
         #endregion
 
-        
+
     }
 }
