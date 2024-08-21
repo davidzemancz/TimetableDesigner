@@ -1,5 +1,4 @@
-﻿
-using PdfSharp.Drawing.Layout;
+﻿using PdfSharp.Drawing.Layout;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
 using System;
@@ -27,7 +26,6 @@ namespace TimetableDesignerApp
         #region Constants
 
         // A4 paper dimensions in pixels at 100% scale
-
         private const float A4_WIDTH_MM = 210;
         private const float A4_HEIGHT_MM = 297;
         private const float A5_WIDTH_MM = 148;
@@ -55,7 +53,7 @@ namespace TimetableDesignerApp
 
         #endregion
 
-        #region Public properties
+        #region Public Properties
 
         /// <summary>
         /// Gets or sets whether snapping is enabled.
@@ -74,6 +72,7 @@ namespace TimetableDesignerApp
                 Invalidate();
             }
         }
+
         /// <summary>
         /// Scale elements font size while resizing.
         /// </summary>
@@ -91,6 +90,7 @@ namespace TimetableDesignerApp
                 Invalidate();
             }
         }
+
         /// <summary>
         /// Paper size.
         /// </summary>
@@ -107,7 +107,7 @@ namespace TimetableDesignerApp
 
         #endregion
 
-        #region Private fields 
+        #region Private Fields 
 
         private float paperWidthPixels;
         private float paperHeightPixels;
@@ -128,7 +128,7 @@ namespace TimetableDesignerApp
 
         #endregion
 
-        #region Constructor and initialization
+        #region Constructor and Initialization
 
         /// <summary>
         /// Initializes a new instance of the TimetableDesigner class.
@@ -138,19 +138,31 @@ namespace TimetableDesignerApp
             this.DoubleBuffered = true;
 
             // Initialize edit text box
-            editTextBox = new TextBox
-            {
-                Visible = false,
-                BorderStyle = BorderStyle.FixedSingle,
-                Font = this.Font
-            };
-            editTextBox.KeyDown += EditTextBox_KeyDown;
-            this.Controls.Add(editTextBox);
+            InitializeEditTextBox();
 
             // Initialize context menu
             InitializeContextMenu();
         }
 
+        /// <summary>
+        /// Initializes the edit text box for inline text editing.
+        /// </summary>
+        private void InitializeEditTextBox()
+        {
+            editTextBox = new TextBox
+            {
+                Visible = false,
+                BorderStyle = BorderStyle.FixedSingle,
+                Font = this.Font,
+                Multiline = true
+            };
+            editTextBox.KeyDown += EditTextBox_KeyDown;
+            this.Controls.Add(editTextBox);
+        }
+
+        /// <summary>
+        /// Initializes the context menu for element manipulation.
+        /// </summary>
         private void InitializeContextMenu()
         {
             contextMenu = new ContextMenuStrip();
@@ -188,13 +200,7 @@ namespace TimetableDesignerApp
         /// </summary>
         public void AddTextField(string text, PointF location, Font font, Color color)
         {
-            SizeF size;
-            if (string.IsNullOrEmpty(text)) size = new SizeF(100, 30);
-            else
-            {
-                size = CreateGraphics().MeasureString(text, font);
-                size.Width += RESIZE_HANDLE_SIZE * 2;
-            }
+            SizeF size = string.IsNullOrEmpty(text) ? new SizeF(100, 30) : MeasureText(text, font);
 
             elements.Add(new TimetableDesignerTextField
             {
@@ -224,12 +230,8 @@ namespace TimetableDesignerApp
         }
 
         /// <summary>
-        /// Adds line to the timetable.
+        /// Adds a line to the timetable.
         /// </summary>
-        /// <param name="startPoint"></param>
-        /// <param name="endPoint"></param>
-        /// <param name="lineColor"></param>
-        /// <param name="lineWidth"></param>
         public void AddLine(PointF startPoint, PointF endPoint, Color lineColor, float lineWidth)
         {
             elements.Add(new TimetableDesignerLine
@@ -243,7 +245,7 @@ namespace TimetableDesignerApp
         }
 
         /// <summary>
-        /// Bring the given element to the front of the z-order.
+        /// Brings the given element to the front of the z-order.
         /// </summary>
         public void BringElementToFront(TimetableDesignerElement element)
         {
@@ -293,11 +295,7 @@ namespace TimetableDesignerApp
         {
             base.OnPaint(e);
 
-            dpiX = e.Graphics.DpiX;
-            dpiY = e.Graphics.DpiY;
-            paperWidthPixels = MillimetersToPixelsX(paperWidthMm);
-            paperHeightPixels = MillimetersToPixelsY(paperHeightMm);
-
+            UpdateDpiAndPaperDimensions(e.Graphics);
             paperRect = GetPaperRectangle();
 
             DrawPaper(e.Graphics);
@@ -338,47 +336,11 @@ namespace TimetableDesignerApp
             {
                 if (e.Button == MouseButtons.Left)
                 {
-                    PointF paperPosition = ControlToPaper(e.Location);
-                    float deltaX = paperPosition.X - lastMousePosition.X;
-                    float deltaY = paperPosition.Y - lastMousePosition.Y;
-
-                    if (isResizing)
-                    {
-                        Cursor = Cursors.SizeNWSE;
-                        ResizeElement(deltaX, deltaY);
-                    }
-                    else
-                    {
-                        Cursor = Cursors.SizeAll;
-                        MoveElement(deltaX, deltaY);
-                    }
-
-                    lastMousePosition = paperPosition;
-                    this.Invalidate();
+                    HandleElementDragging(e);
                 }
                 else
                 {
-                    RectangleF fieldRect = new RectangleF(selectedElement.Location, selectedElement.Size);
-                    RectangleF innerFieldRect = new RectangleF(fieldRect.Location, fieldRect.Size);
-                    float innerRectMargin = fieldRect.Height / 5;
-                    innerFieldRect.Inflate(-innerRectMargin, -innerRectMargin);
-
-                    RectangleF resizeHandle = GetFieldResizeHandle(fieldRect);
-                    PointF paperPosition = ControlToPaper(e.Location);
-
-
-                    if (resizeHandle.Contains(paperPosition))
-                    {
-                        Cursor = Cursors.SizeNWSE;
-                    }
-                    else if (fieldRect.Contains(paperPosition) && !innerFieldRect.Contains(paperPosition))
-                    {
-                        Cursor = Cursors.SizeAll;
-                    }
-                    else
-                    {
-                        Cursor = Cursors.Default;
-                    }
+                    UpdateCursor(e);
                 }
             }
             else
@@ -420,10 +382,12 @@ namespace TimetableDesignerApp
             }
         }
 
+        /// <summary>
+        /// Handles the Resize event of the TimetableDesigner.
+        /// </summary>
         protected override void OnResize(EventArgs eventargs)
         {
             base.OnResize(eventargs);
-
             Invalidate();
         }
 
@@ -477,7 +441,6 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Draws rulers on the border of the paper 
         /// </summary>
-        /// <param name="g"></param>
         private void DrawRulers(Graphics g)
         {
             // Draw ruler backgrounds
@@ -488,6 +451,21 @@ namespace TimetableDesignerApp
             SizeF markSize = g.MeasureString("100", Font);
 
             // Draw tick marks and numbers
+            DrawHorizontalRuler(g, markSize);
+            DrawVerticalRuler(g, markSize);
+
+            // Draw position indicators for selected text field
+            if (selectedElement != null)
+            {
+                DrawRulerPositionIndicators(g);
+            }
+        }
+
+        /// <summary>
+        /// Draws the horizontal ruler with tick marks and numbers.
+        /// </summary>
+        private void DrawHorizontalRuler(Graphics g, SizeF markSize)
+        {
             for (int mm = 0; mm <= paperWidthMm; mm++)
             {
                 bool majorTick = mm % MAJOR_TICK_INTERVAL == 0 || mm == paperWidthMm;
@@ -501,7 +479,13 @@ namespace TimetableDesignerApp
                     g.DrawString(mm.ToString(), this.Font, Brushes.Black, x - 10, paperRect.Top - RULER_SIZE);
                 }
             }
+        }
 
+        /// <summary>
+        /// Draws the vertical ruler with tick marks and numbers.
+        /// </summary>
+        private void DrawVerticalRuler(Graphics g, SizeF markSize)
+        {
             for (int mm = 0; mm <= paperHeightMm; mm++)
             {
                 bool majorTick = mm % MAJOR_TICK_INTERVAL == 0 || mm == paperHeightMm;
@@ -515,14 +499,11 @@ namespace TimetableDesignerApp
                     g.DrawString(mm.ToString(), this.Font, Brushes.Black, paperRect.Left - markSize.Width - 4, y - 10);
                 }
             }
-
-            // Draw position indicators for selected text field
-            if (selectedElement != null)
-            {
-                DrawRulerPositionIndicators(g);
-            }
         }
 
+        /// <summary>
+        /// Draws position indicators on rulers for the selected element.
+        /// </summary>
         private void DrawRulerPositionIndicators(Graphics g)
         {
             PointF fieldTopLeft = PaperToControl(selectedElement.Location);
@@ -539,6 +520,26 @@ namespace TimetableDesignerApp
             DrawTriangleIndicator(g, paperRect.Left - RULER_SIZE, fieldTopLeft.Y, false);
             DrawTriangleIndicator(g, paperRect.Left - RULER_SIZE, fieldBottomRight.Y, false);
 
+            DrawPositionValues(g, fieldTopLeft, fieldBottomRight);
+        }
+
+        /// <summary>
+        /// Draws a triangle indicator on the ruler.
+        /// </summary>
+        private void DrawTriangleIndicator(Graphics g, float x, float y, bool isHorizontal)
+        {
+            Point[] trianglePoints = isHorizontal
+                ? new Point[] { new Point((int)x - 5, (int)y), new Point((int)x + 5, (int)y), new Point((int)x, (int)y + 5) }
+                : new Point[] { new Point((int)x, (int)y - 5), new Point((int)x, (int)y + 5), new Point((int)x + 5, (int)y) };
+
+            g.FillPolygon(Brushes.Red, trianglePoints);
+        }
+
+        /// <summary>
+        /// Draws position values on the rulers for the selected element.
+        /// </summary>
+        private void DrawPositionValues(Graphics g, PointF fieldTopLeft, PointF fieldBottomRight)
+        {
             SizeF markSize = g.MeasureString("100 mm", Font);
 
             // Calculate positions in millimeters
@@ -557,32 +558,8 @@ namespace TimetableDesignerApp
             g.DrawString($"{bottomMm:F0} mm", this.Font, Brushes.Black, xOffset, fieldBottomRight.Y - (markSize.Height / 2));
         }
 
-        private void DrawTriangleIndicator(Graphics g, float x, float y, bool isHorizontal)
-        {
-            Point[] trianglePoints;
-            if (isHorizontal)
-            {
-                trianglePoints = new Point[]
-                {
-            new Point((int)x - 5, (int)y),
-            new Point((int)x + 5, (int)y),
-            new Point((int)x, (int)y + 5)
-                };
-            }
-            else
-            {
-                trianglePoints = new Point[]
-                {
-            new Point((int)x, (int)y - 5),
-            new Point((int)x, (int)y + 5),
-            new Point((int)x + 5, (int)y)
-                };
-            }
-            g.FillPolygon(Brushes.Red, trianglePoints);
-        }
-
         /// <summary>
-        /// Draws all elements.
+        /// Draws all elements on the timetable.
         /// </summary>
         private void DrawElements(Graphics g)
         {
@@ -593,22 +570,22 @@ namespace TimetableDesignerApp
 
                 RectangleF rect = new RectangleF(elementLocation, elementSize);
 
-                if (element is TimetableDesignerTextField textField)
+                switch (element)
                 {
-                    DrawTextField(g, textField, rect);
+                    case TimetableDesignerTextField textField:
+                        DrawTextField(g, textField, rect);
+                        break;
+                    case TimetableDesignerRectangle rectangle:
+                        DrawRectangle(g, rectangle, rect);
+                        break;
+                    case TimetableDesignerLine line:
+                        DrawLine(g, line);
+                        break;
+                    case TimetableDesignerJizdniRad jizdniRad:
+                        DrawJizdniRad(g, jizdniRad, rect);
+                        break;
                 }
-                else if (element is TimetableDesignerRectangle rectangle)
-                {
-                    DrawRectangle(g, rectangle, rect);
-                }
-                else if (element is TimetableDesignerLine line)
-                {
-                    DrawLine(g, line);
-                }
-                else if (element is TimetableDesignerJizdniRad jizdniRad)
-                {
-                    DrawJizdniRad(g, jizdniRad, rect);
-                }
+
                 if (element == selectedElement) DrawResizeHandle(g, rect);
             }
         }
@@ -673,8 +650,6 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Draws a line on the panel.
         /// </summary>
-        /// <param name="g"></param>
-        /// <param name="line"></param>
         private void DrawLine(Graphics g, TimetableDesignerLine line)
         {
             PointF startPoint = PaperToControl(line.StartPoint);
@@ -719,7 +694,6 @@ namespace TimetableDesignerApp
                 DrawWrappedText(g, textField.Text, rect, scaledFont, textField.TextColor);
                 DrawResizeHandle(g, rect);
             }
-
         }
 
         /// <summary>
@@ -803,7 +777,7 @@ namespace TimetableDesignerApp
             selectedElement = null;
             isResizing = false;
 
-            foreach (var element in elements.Reverse<TimetableDesignerElement>())
+            foreach (var element in elements.AsEnumerable().Reverse())
             {
                 RectangleF elementRect = new RectangleF(element.Location, element.Size);
                 if (element is TimetableDesignerLine line)
@@ -811,36 +785,34 @@ namespace TimetableDesignerApp
                     if (IsPointNearLine(line, paperPosition))
                     {
                         selectedElement = line;
-
-                        // Check if mouse is over resize handle
-                        RectangleF resizeHandle = GetFieldResizeHandle(elementRect);
-                        if (resizeHandle.Contains(paperPosition))
-                        {
-                            isResizing = true;
-                        }
-
+                        CheckResizeHandle(elementRect, paperPosition);
                         break;
                     }
                 }
-                else
+                else if (elementRect.Contains(paperPosition))
                 {
-                    if (elementRect.Contains(paperPosition))
-                    {
-                        selectedElement = element;
-
-                        // Check if mouse is over resize handle
-                        RectangleF resizeHandle = GetFieldResizeHandle(elementRect);
-                        if (resizeHandle.Contains(paperPosition))
-                        {
-                            isResizing = true;
-                        }
-
-                        break;
-                    }
+                    selectedElement = element;
+                    CheckResizeHandle(elementRect, paperPosition);
+                    break;
                 }
             }
         }
 
+        /// <summary>
+        /// Checks if the mouse is over the resize handle of an element.
+        /// </summary>
+        private void CheckResizeHandle(RectangleF elementRect, PointF paperPosition)
+        {
+            RectangleF resizeHandle = GetFieldResizeHandle(elementRect);
+            if (resizeHandle.Contains(paperPosition))
+            {
+                isResizing = true;
+            }
+        }
+
+        /// <summary>
+        /// Checks if a point is near a line.
+        /// </summary>
         private bool IsPointNearLine(TimetableDesignerLine line, PointF point)
         {
             const float tolerance = 5f; // Adjust tolerance as needed
@@ -864,7 +836,9 @@ namespace TimetableDesignerApp
             return distance <= tolerance;
         }
 
-
+        /// <summary>
+        /// Gets the rectangle representing the resize handle of a field.
+        /// </summary>
         private RectangleF GetFieldResizeHandle(RectangleF fieldRect)
         {
             return new RectangleF(
@@ -875,78 +849,118 @@ namespace TimetableDesignerApp
         }
 
         /// <summary>
-        /// Resizes the selected text field.
+        /// Resizes the selected element.
         /// </summary>
         private void ResizeElement(float deltaX, float deltaY)
         {
-
-
             if (selectedElement is TimetableDesignerTextField textField)
             {
-                // Scale size
-                selectedElement.Size = new SizeF(
-                    Math.Max(ELEMENT_MIN_SIZE, selectedElement.Size.Width + deltaX),
-                    Math.Max(ELEMENT_MIN_SIZE, selectedElement.Size.Height + deltaY)
-                );
-
-                // Scale font
-                if (ScaleFontWhileResizing)
-                {
-                    var scaledFont = new Font(textField.Font.FontFamily, selectedElement.Size.Height / 2.2f, textField.Font.Style, GraphicsUnit.Pixel);
-                    textField.Font = scaledFont;
-                }
+                ResizeTextField(textField, deltaX, deltaY);
             }
-            else if (selectedElement is TimetableDesignerLine)
+            else if (selectedElement is TimetableDesignerLine line)
             {
-                // Scale size
-                selectedElement.Size = new SizeF(
-                   selectedElement.Size.Width + deltaX,
-                    selectedElement.Size.Height + deltaY
-                );
+                ResizeLine(line, deltaX, deltaY);
             }
             else
             {
-                // Scale size
-                selectedElement.Size = new SizeF(
-                    Math.Max(ELEMENT_MIN_SIZE, selectedElement.Size.Width + deltaX),
-                    Math.Max(ELEMENT_MIN_SIZE, selectedElement.Size.Height + deltaY)
-                );
+                ResizeGenericElement(selectedElement, deltaX, deltaY);
             }
         }
 
         /// <summary>
-        /// Moves the selected text field.
+        /// Resizes a text field element.
+        /// </summary>
+        private void ResizeTextField(TimetableDesignerTextField textField, float deltaX, float deltaY)
+        {
+            selectedElement.Size = new SizeF(
+                Math.Max(ELEMENT_MIN_SIZE, selectedElement.Size.Width + deltaX),
+                Math.Max(ELEMENT_MIN_SIZE, selectedElement.Size.Height + deltaY)
+            );
+
+            if (ScaleFontWhileResizing)
+            {
+                var scaledFont = new Font(textField.Font.FontFamily, selectedElement.Size.Height / 2.2f, textField.Font.Style, GraphicsUnit.Pixel);
+                textField.Font = scaledFont;
+            }
+        }
+
+        /// <summary>
+        /// Resizes a line element.
+        /// </summary>
+        private void ResizeLine(TimetableDesignerLine line, float deltaX, float deltaY)
+        {
+            selectedElement.Size = new SizeF(
+               selectedElement.Size.Width + deltaX,
+                selectedElement.Size.Height + deltaY
+            );
+        }
+
+        /// <summary>
+        /// Resizes a generic element.
+        /// </summary>
+        private void ResizeGenericElement(TimetableDesignerElement element, float deltaX, float deltaY)
+        {
+            element.Size = new SizeF(
+                Math.Max(ELEMENT_MIN_SIZE, element.Size.Width + deltaX),
+                Math.Max(ELEMENT_MIN_SIZE, element.Size.Height + deltaY)
+            );
+        }
+
+        /// <summary>
+        /// Moves the selected element.
         /// </summary>
         private void MoveElement(float deltaX, float deltaY)
         {
             if (selectedElement is TimetableDesignerLine line)
             {
-                var startPoint = new PointF(line.StartPoint.X + deltaX, line.StartPoint.Y + deltaY);
-                var endPoint = new PointF(line.EndPoint.X + deltaX, line.EndPoint.Y + deltaY);
-
-                line.StartPoint = startPoint;
-                line.EndPoint = endPoint;
-
+                MoveLine(line, deltaX, deltaY);
             }
             else
             {
-                PointF newLocation = new PointF(
-                selectedElement.Location.X + deltaX,
-                    selectedElement.Location.Y + deltaY
-                );
-
-                // Check if the text field is not moved outside the paper
-                if (newLocation.X < 0) newLocation.X = 0;
-                if (newLocation.Y < 0) newLocation.Y = 0;
-                if (newLocation.X + selectedElement.Size.Width > paperWidthPixels) newLocation.X = paperWidthPixels - selectedElement.Size.Width;
-                if (newLocation.Y + selectedElement.Size.Height > paperHeightPixels) newLocation.Y = paperHeightPixels - selectedElement.Size.Height;
-
-                // Apply snapping
-                newLocation = ApplySnapping(newLocation);
-
-                // Move the text field
-                selectedElement.Location = newLocation;
+                MoveGenericElement(selectedElement, deltaX, deltaY);
             }
+        }
+
+        /// <summary>
+        /// Moves a line element.
+        /// </summary>
+        private void MoveLine(TimetableDesignerLine line, float deltaX, float deltaY)
+        {
+            var startPoint = new PointF(line.StartPoint.X + deltaX, line.StartPoint.Y + deltaY);
+            var endPoint = new PointF(line.EndPoint.X + deltaX, line.EndPoint.Y + deltaY);
+
+            line.StartPoint = startPoint;
+            line.EndPoint = endPoint;
+        }
+
+        /// <summary>
+        /// Moves a generic element.
+        /// </summary>
+        private void MoveGenericElement(TimetableDesignerElement element, float deltaX, float deltaY)
+        {
+            PointF newLocation = new PointF(
+                element.Location.X + deltaX,
+                element.Location.Y + deltaY
+            );
+
+            // Check if the element is not moved outside the paper
+            newLocation = ConstrainToPaper(newLocation, element.Size);
+
+            // Apply snapping
+            newLocation = ApplySnapping(newLocation);
+
+            // Move the element
+            element.Location = newLocation;
+        }
+
+        /// <summary>
+        /// Constrains a location to be within the paper boundaries.
+        /// </summary>
+        private PointF ConstrainToPaper(PointF location, SizeF size)
+        {
+            location.X = Math.Max(0, Math.Min(location.X, paperWidthPixels - size.Width));
+            location.Y = Math.Max(0, Math.Min(location.Y, paperHeightPixels - size.Height));
+            return location;
         }
 
         /// <summary>
@@ -966,6 +980,9 @@ namespace TimetableDesignerApp
             return new PointF(snapX, snapY);
         }
 
+        /// <summary>
+        /// Applies snapping to other elements.
+        /// </summary>
         private void ApplySnappingToElements(PointF newLocation, ref float snapX, ref float snapY)
         {
             foreach (var field in elements.Where(f => f != selectedElement))
@@ -998,12 +1015,13 @@ namespace TimetableDesignerApp
             }
         }
 
-        private PointF ApplySnappingToMarginLines(PointF newLocation, ref float snapX, ref float snapY)
+        /// <summary>
+        /// Applies snapping to margin lines.
+        /// </summary>
+        private void ApplySnappingToMarginLines(PointF newLocation, ref float snapX, ref float snapY)
         {
-            // Get margin snap lines
             var marginSnapLines = GetMarginSnapLines();
 
-            // Snap to margin lines
             foreach (var marginLine in marginSnapLines)
             {
                 if (marginLine.IsVertical)
@@ -1037,8 +1055,6 @@ namespace TimetableDesignerApp
                     }
                 }
             }
-
-            return new PointF(snapX, snapY);
         }
 
         /// <summary>
@@ -1046,21 +1062,13 @@ namespace TimetableDesignerApp
         /// </summary>
         private List<TimetableDesignerSnapLine> GetMarginSnapLines()
         {
-            var snapLines = new List<TimetableDesignerSnapLine>();
-
-            // Left margin
-            snapLines.Add(new TimetableDesignerSnapLine { IsVertical = true, Position = MillimetersToPixelsX(PaperMargin.Left) });
-
-            // Right margin
-            snapLines.Add(new TimetableDesignerSnapLine { IsVertical = true, Position = paperWidthPixels - MillimetersToPixelsX(PaperMargin.Right) });
-
-            // Top margin
-            snapLines.Add(new TimetableDesignerSnapLine { IsVertical = false, Position = MillimetersToPixelsY(PaperMargin.Top) });
-
-            // Bottom margin
-            snapLines.Add(new TimetableDesignerSnapLine { IsVertical = false, Position = paperHeightPixels - MillimetersToPixelsY(PaperMargin.Bottom) });
-
-            return snapLines;
+            return new List<TimetableDesignerSnapLine>
+            {
+                new TimetableDesignerSnapLine { IsVertical = true, Position = MillimetersToPixelsX(PaperMargin.Left) },
+                new TimetableDesignerSnapLine { IsVertical = true, Position = paperWidthPixels - MillimetersToPixelsX(PaperMargin.Right) },
+                new TimetableDesignerSnapLine { IsVertical = false, Position = MillimetersToPixelsY(PaperMargin.Top) },
+                new TimetableDesignerSnapLine { IsVertical = false, Position = paperHeightPixels - MillimetersToPixelsY(PaperMargin.Bottom) }
+            };
         }
 
         /// <summary>
@@ -1077,7 +1085,6 @@ namespace TimetableDesignerApp
             editTextBox.Font = GetScaledFont(textField.Font);
             editTextBox.ForeColor = textField.TextColor;
             editTextBox.Tag = textField;
-            editTextBox.Multiline = true;
             editTextBox.Visible = true;
             editTextBox.Focus();
         }
@@ -1134,45 +1141,48 @@ namespace TimetableDesignerApp
         {
             if (selectedElement != null)
             {
-                if (selectedElement is TimetableDesignerTextField textField)
+                var newElement = selectedElement.Clone() as TimetableDesignerElement;
+                if (newElement != null)
                 {
-                    var newTextField = textField.Clone() as TimetableDesignerTextField;
-                    newTextField.Location = new PointF(selectedElement.Location.X + 20, selectedElement.Location.Y + 20);
-                    elements.Add(newTextField);
-                    selectedElement = newTextField;
-                    this.Invalidate();
-                }
-                else if (selectedElement is TimetableDesignerRectangle rectangle)
-                {
-                    var newRectangle = rectangle.Clone() as TimetableDesignerRectangle;
-                    newRectangle.Location = new PointF(selectedElement.Location.X + 20, selectedElement.Location.Y + 20);
-                    elements.Add(newRectangle);
-                    selectedElement = newRectangle;
+                    newElement.Location = new PointF(selectedElement.Location.X + 20, selectedElement.Location.Y + 20);
+                    elements.Add(newElement);
+                    selectedElement = newElement;
                     this.Invalidate();
                 }
             }
         }
 
-
         #endregion
 
         #region Unit Conversion
 
+        /// <summary>
+        /// Converts millimeters to pixels for the X-axis.
+        /// </summary>
         private float MillimetersToPixelsX(float mm)
         {
             return mm * dpiX / MM_PER_INCH;
         }
 
+        /// <summary>
+        /// Converts millimeters to pixels for the Y-axis.
+        /// </summary>
         private float MillimetersToPixelsY(float mm)
         {
             return mm * dpiY / MM_PER_INCH;
         }
 
+        /// <summary>
+        /// Converts pixels to millimeters for the X-axis.
+        /// </summary>
         private float PixelsToMillimetersX(float pixels)
         {
             return pixels * MM_PER_INCH / dpiX;
         }
 
+        /// <summary>
+        /// Converts pixels to millimeters for the Y-axis.
+        /// </summary>
         private float PixelsToMillimetersY(float pixels)
         {
             return pixels * MM_PER_INCH / dpiY;
@@ -1182,6 +1192,9 @@ namespace TimetableDesignerApp
 
         #region Coordinate Conversion
 
+        /// <summary>
+        /// Updates the paper dimensions based on the current paper size.
+        /// </summary>
         private void UpdatePaperDimensions()
         {
             switch (paperSize)
@@ -1196,6 +1209,7 @@ namespace TimetableDesignerApp
                     break;
                 case PaperSizes.A4_Landscape:
                     paperWidthMm = A4_HEIGHT_MM;
+                    paperWidthMm = A4_HEIGHT_MM;
                     paperHeightMm = A4_WIDTH_MM;
                     break;
                 case PaperSizes.A5_Landscape:
@@ -1206,12 +1220,18 @@ namespace TimetableDesignerApp
             UpdatePaperPixels();
         }
 
+        /// <summary>
+        /// Updates the paper dimensions in pixels.
+        /// </summary>
         private void UpdatePaperPixels()
         {
             paperWidthPixels = MillimetersToPixelsX(paperWidthMm);
             paperHeightPixels = MillimetersToPixelsY(paperHeightMm);
         }
 
+        /// <summary>
+        /// Gets a scaled font based on the current scale factor.
+        /// </summary>
         private Font GetScaledFont(Font font)
         {
             return new Font(font.FontFamily, font.Size * ScaleFactor, font.Style);
@@ -1220,7 +1240,6 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Gets the rectangle of the paper in control coordinates.
         /// </summary>
-        /// <returns></returns>
         private Rectangle GetPaperRectangle()
         {
             float paperWidth = paperWidthPixels * ScaleFactor;
@@ -1290,7 +1309,7 @@ namespace TimetableDesignerApp
                     {
                         AddLineToPdf(gfx, line, pdfWidth, pdfHeight);
                     }
-                    else if(element is TimetableDesignerJizdniRad jizdniRad)
+                    else if (element is TimetableDesignerJizdniRad jizdniRad)
                     {
                         AddJizdniRadToPdf(gfx, jizdniRad, pdfWidth, pdfHeight);
                     }
@@ -1301,6 +1320,9 @@ namespace TimetableDesignerApp
             }
         }
 
+        /// <summary>
+        /// Gets the appropriate PDF page size based on the current paper size.
+        /// </summary>
         private PdfSharp.PageSize GetPdfPageSize()
         {
             switch (paperSize)
@@ -1316,6 +1338,9 @@ namespace TimetableDesignerApp
             }
         }
 
+        /// <summary>
+        /// Gets the appropriate PDF orientation based on the current paper size.
+        /// </summary>
         private PdfSharp.PageOrientation GetPdfOrientation()
         {
             switch (paperSize)
@@ -1344,9 +1369,6 @@ namespace TimetableDesignerApp
             double width = ConvertToPdfSpace(jizdniRad.Size.Width, paperWidthPixels, pdfWidth);
             double height = ConvertToPdfSpace(jizdniRad.Size.Height, paperHeightPixels, pdfHeight);
 
-            // Implementation similar to DrawJizdniRad, but using PDFsharp's XGraphics
-            // You'll need to convert fonts, colors, and drawing methods to their PDFsharp equivalents
-            // This is a simplified version and may need further adjustment
             XRect rect = new XRect(x, y, width, height);
             gfx.DrawRectangle(XBrushes.White, rect);
             gfx.DrawRectangle(XPens.Black, rect);
@@ -1394,7 +1416,6 @@ namespace TimetableDesignerApp
                 double lineX = x + i * columnWidth;
                 gfx.DrawLine(gridPen, lineX, y, lineX, y + height);
             }
-
         }
 
         /// <summary>
@@ -1490,6 +1511,9 @@ namespace TimetableDesignerApp
             return (value / originalDimension) * pdfDimension;
         }
 
+        /// <summary>
+        /// Converts a System.Drawing.Color to PdfSharp.Drawing.XColor.
+        /// </summary>
         private XColor ColorToXColor(Color color)
         {
             return XColor.FromArgb(color.A, color.R, color.G, color.B);
@@ -1497,11 +1521,87 @@ namespace TimetableDesignerApp
 
         #endregion
 
+        #region Helper Methods
 
+        /// <summary>
+        /// Updates DPI and paper dimensions based on the current graphics object.
+        /// </summary>
+        private void UpdateDpiAndPaperDimensions(Graphics g)
+        {
+            dpiX = g.DpiX;
+            dpiY = g.DpiY;
+            paperWidthPixels = MillimetersToPixelsX(paperWidthMm);
+            paperHeightPixels = MillimetersToPixelsY(paperHeightMm);
+        }
+
+        /// <summary>
+        /// Handles the dragging of an element.
+        /// </summary>
+        private void HandleElementDragging(MouseEventArgs e)
+        {
+            PointF paperPosition = ControlToPaper(e.Location);
+            float deltaX = paperPosition.X - lastMousePosition.X;
+            float deltaY = paperPosition.Y - lastMousePosition.Y;
+
+            if (isResizing)
+            {
+                Cursor = Cursors.SizeNWSE;
+                ResizeElement(deltaX, deltaY);
+            }
+            else
+            {
+                Cursor = Cursors.SizeAll;
+                MoveElement(deltaX, deltaY);
+            }
+
+            lastMousePosition = paperPosition;
+            this.Invalidate();
+        }
+
+        /// <summary>
+        /// Updates the cursor based on the mouse position relative to the selected element.
+        /// </summary>
+        private void UpdateCursor(MouseEventArgs e)
+        {
+            RectangleF fieldRect = new RectangleF(selectedElement.Location, selectedElement.Size);
+            RectangleF innerFieldRect = new RectangleF(fieldRect.Location, fieldRect.Size);
+            float innerRectMargin = fieldRect.Height / 5;
+            innerFieldRect.Inflate(-innerRectMargin, -innerRectMargin);
+
+            RectangleF resizeHandle = GetFieldResizeHandle(fieldRect);
+            PointF paperPosition = ControlToPaper(e.Location);
+
+            if (resizeHandle.Contains(paperPosition))
+            {
+                Cursor = Cursors.SizeNWSE;
+            }
+            else if (fieldRect.Contains(paperPosition) && !innerFieldRect.Contains(paperPosition))
+            {
+                Cursor = Cursors.SizeAll;
+            }
+            else
+            {
+                Cursor = Cursors.Default;
+            }
+        }
+
+        /// <summary>
+        /// Measures the size of the given text using the specified font.
+        /// </summary>
+        private SizeF MeasureText(string text, Font font)
+        {
+            SizeF size = CreateGraphics().MeasureString(text, font);
+            size.Width += RESIZE_HANDLE_SIZE * 2;
+            return size;
+        }
+
+        #endregion
     }
 
+    #region Element Classes
+
     /// <summary>
-    /// Represents a text field in the timetable designer.
+    /// Base class for all timetable designer elements.
     /// </summary>
     public abstract class TimetableDesignerElement
     {
@@ -1514,6 +1614,9 @@ namespace TimetableDesignerApp
         }
     }
 
+    /// <summary>
+    /// Represents a text field in the timetable designer.
+    /// </summary>
     public class TimetableDesignerTextField : TimetableDesignerElement
     {
         public string Text { get; set; }
@@ -1528,28 +1631,19 @@ namespace TimetableDesignerApp
         }
     }
 
+    /// <summary>
+    /// Represents a rectangle in the timetable designer.
+    /// </summary>
     public class TimetableDesignerRectangle : TimetableDesignerElement
     {
         public Color FillColor { get; set; }
         public Color BorderColor { get; set; }
         public float BorderWidth { get; set; }
-
-        public override TimetableDesignerElement Clone()
-        {
-            return (TimetableDesignerElement)this.MemberwiseClone();
-        }
     }
 
     /// <summary>
-    /// Represents a snap line for alignment in the timetable designer.
+    /// Represents a line in the timetable designer.
     /// </summary>
-    public class TimetableDesignerSnapLine
-    {
-        public bool IsVertical { get; set; }
-        public float Position { get; set; }
-    }
-
-
     public class TimetableDesignerLine : TimetableDesignerElement
     {
         private PointF startPoint;
@@ -1596,12 +1690,11 @@ namespace TimetableDesignerApp
 
         public Color Color { get; set; }
         public float Width { get; set; }
-
-        public override TimetableDesignerElement Clone()
-        {
-            return (TimetableDesignerLine)this.MemberwiseClone();
-        }
     }
+
+    /// <summary>
+    /// Represents a jizdni rad (timetable) in the timetable designer.
+    /// </summary>
     public class TimetableDesignerJizdniRad : TimetableDesignerElement
     {
         public List<string> StationNames { get; set; } = new List<string>();
@@ -1629,5 +1722,14 @@ namespace TimetableDesignerApp
         }
     }
 
+    /// <summary>
+    /// Represents a snap line for alignment in the timetable designer.
+    /// </summary>
+    public class TimetableDesignerSnapLine
+    {
+        public bool IsVertical { get; set; }
+        public float Position { get; set; }
+    }
 
+    #endregion
 }
