@@ -128,7 +128,7 @@ namespace TimetableDesignerApp
 
         #endregion
 
-        #region Constructor
+        #region Constructor and initialization
 
         /// <summary>
         /// Initializes a new instance of the TimetableDesigner class.
@@ -148,10 +148,33 @@ namespace TimetableDesignerApp
             this.Controls.Add(editTextBox);
 
             // Initialize context menu
+            InitializeContextMenu();
+        }
+
+        private void InitializeContextMenu()
+        {
             contextMenu = new ContextMenuStrip();
+
             var duplicateItem = new ToolStripMenuItem("Duplicate");
-            duplicateItem.Click += DuplicateMenuItem_Click;
-            contextMenu.Items.Add(duplicateItem);
+            duplicateItem.Click += (sender, e) => DuplicateSelectedItem();
+
+            var deleteItem = new ToolStripMenuItem("Delete");
+            deleteItem.Click += (sender, e) => DeleteSelectedElement();
+
+            var bringToFrontItem = new ToolStripMenuItem("Bring to Front");
+            bringToFrontItem.Click += (sender, e) => BringElementToFront(selectedElement);
+
+            var sendToBackItem = new ToolStripMenuItem("Send to Back");
+            sendToBackItem.Click += (sender, e) => SendElementToBack(selectedElement);
+
+            contextMenu.Items.AddRange(new ToolStripItem[]
+            {
+                duplicateItem,
+                deleteItem,
+                new ToolStripSeparator(),
+                bringToFrontItem,
+                sendToBackItem
+            });
 
             this.ContextMenuStrip = contextMenu;
         }
@@ -163,8 +186,16 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Adds a new text field to the timetable.
         /// </summary>
-        public void AddTextField(string text, PointF location, SizeF size, Font font, Color color)
+        public void AddTextField(string text, PointF location, Font font, Color color)
         {
+            SizeF size;
+            if (string.IsNullOrEmpty(text)) size = new SizeF(100, 30);
+            else
+            {
+                size = CreateGraphics().MeasureString(text, font);
+                size.Width += RESIZE_HANDLE_SIZE * 2;
+            }
+
             elements.Add(new TimetableDesignerTextField
             {
                 Text = text,
@@ -211,6 +242,45 @@ namespace TimetableDesignerApp
             this.Invalidate();
         }
 
+        /// <summary>
+        /// Bring the given element to the front of the z-order.
+        /// </summary>
+        public void BringElementToFront(TimetableDesignerElement element)
+        {
+            if (elements.Remove(element))
+            {
+                elements.Add(element);
+                Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// Sends the given element to the back of the z-order.
+        /// </summary>
+        public void SendElementToBack(TimetableDesignerElement element)
+        {
+            if (elements.Remove(element))
+            {
+                elements.Insert(0, element);
+                Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// Adds a new jizdni rad to the timetable.
+        /// </summary>
+        public void AddJizdniRad(PointF location, SizeF size, string routeName, List<string> stationNames, List<List<string>> departures)
+        {
+            elements.Add(new TimetableDesignerJizdniRad
+            {
+                Location = location,
+                Size = size,
+                RouteName = routeName,
+                StationNames = stationNames,
+                Departures = departures,
+            });
+            this.Invalidate();
+        }
 
         #endregion
 
@@ -526,20 +596,77 @@ namespace TimetableDesignerApp
                 if (element is TimetableDesignerTextField textField)
                 {
                     DrawTextField(g, textField, rect);
-
-                    if (element == selectedElement) DrawResizeHandle(g, rect);
                 }
                 else if (element is TimetableDesignerRectangle rectangle)
                 {
                     DrawRectangle(g, rectangle, rect);
-                    if (element == selectedElement) DrawResizeHandle(g, rect);
                 }
                 else if (element is TimetableDesignerLine line)
                 {
                     DrawLine(g, line);
-                    if (element == selectedElement) DrawResizeHandle(g, rect);
                 }
+                else if (element is TimetableDesignerJizdniRad jizdniRad)
+                {
+                    DrawJizdniRad(g, jizdniRad, rect);
+                }
+                if (element == selectedElement) DrawResizeHandle(g, rect);
+            }
+        }
 
+        /// <summary>
+        /// Draws a jizdni rad on the panel.
+        /// </summary>
+        private void DrawJizdniRad(Graphics g, TimetableDesignerJizdniRad jizdniRad, RectangleF rect)
+        {
+            const float padding = 5f;
+            float rowHeight = rect.Height / (jizdniRad.StationNames.Count + 1);
+            float columnWidth = rect.Width / (jizdniRad.Departures.Count + 1);
+
+            // Draw background
+            g.FillRectangle(new SolidBrush(Color.White), rect);
+            g.DrawRectangle(Pens.Black, rect.X, rect.Y, rect.Width, rect.Height);
+
+            // Draw header
+            g.FillRectangle(new SolidBrush(jizdniRad.HeaderColor), rect.X, rect.Y, rect.Width, rowHeight);
+            g.DrawString(jizdniRad.RouteName, jizdniRad.HeaderFont, new SolidBrush(jizdniRad.TextColor),
+                new RectangleF(rect.X + padding, rect.Y, rect.Width - 2 * padding, rowHeight),
+                new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
+
+            // Draw station names
+            for (int i = 0; i < jizdniRad.StationNames.Count; i++)
+            {
+                float y = rect.Y + (i + 1) * rowHeight;
+                g.DrawString(jizdniRad.StationNames[i], jizdniRad.ContentFont, new SolidBrush(jizdniRad.TextColor),
+                    new RectangleF(rect.X + padding, y, columnWidth - 2 * padding, rowHeight),
+                    new StringFormat { Alignment = StringAlignment.Near, LineAlignment = StringAlignment.Center });
+            }
+
+            // Draw departures
+            for (int i = 0; i < jizdniRad.Departures.Count; i++)
+            {
+                for (int j = 0; j < jizdniRad.Departures[i].Count; j++)
+                {
+                    float x = rect.X + (i + 1) * columnWidth;
+                    float y = rect.Y + (j + 1) * rowHeight;
+                    g.DrawString(jizdniRad.Departures[i][j], jizdniRad.ContentFont, new SolidBrush(jizdniRad.TextColor),
+                        new RectangleF(x + padding, y, columnWidth - 2 * padding, rowHeight),
+                        new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
+                }
+            }
+
+            // Draw grid lines
+            using (Pen gridPen = new Pen(Color.LightGray))
+            {
+                for (int i = 1; i <= jizdniRad.StationNames.Count; i++)
+                {
+                    float y = rect.Y + i * rowHeight;
+                    g.DrawLine(gridPen, rect.X, y, rect.Right, y);
+                }
+                for (int i = 1; i <= jizdniRad.Departures.Count; i++)
+                {
+                    float x = rect.X + i * columnWidth;
+                    g.DrawLine(gridPen, x, rect.Y, x, rect.Bottom);
+                }
             }
         }
 
@@ -656,7 +783,20 @@ namespace TimetableDesignerApp
         #region Element Manipulation
 
         /// <summary>
-        /// Selects a text field based on the given paper position.
+        /// Deletes the selected element.
+        /// </summary>
+        private void DeleteSelectedElement()
+        {
+            if (selectedElement != null)
+            {
+                elements.Remove(selectedElement);
+                selectedElement = null;
+                Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// Selects an element based on the given paper position.
         /// </summary>
         private void SelectElement(PointF paperPosition)
         {
@@ -820,6 +960,14 @@ namespace TimetableDesignerApp
             float snapX = newLocation.X;
             float snapY = newLocation.Y;
 
+            ApplySnappingToMarginLines(newLocation, ref snapX, ref snapY);
+            ApplySnappingToElements(newLocation, ref snapX, ref snapY);
+
+            return new PointF(snapX, snapY);
+        }
+
+        private void ApplySnappingToElements(PointF newLocation, ref float snapX, ref float snapY)
+        {
             foreach (var field in elements.Where(f => f != selectedElement))
             {
                 // Snap to left edge
@@ -848,8 +996,71 @@ namespace TimetableDesignerApp
                     snapLines.Add(new TimetableDesignerSnapLine { IsVertical = false, Position = field.Location.Y + field.Size.Height });
                 }
             }
+        }
+
+        private PointF ApplySnappingToMarginLines(PointF newLocation, ref float snapX, ref float snapY)
+        {
+            // Get margin snap lines
+            var marginSnapLines = GetMarginSnapLines();
+
+            // Snap to margin lines
+            foreach (var marginLine in marginSnapLines)
+            {
+                if (marginLine.IsVertical)
+                {
+                    // Snap left edge to margin
+                    if (Math.Abs(newLocation.X - marginLine.Position) < SNAP_THRESHOLD)
+                    {
+                        snapX = marginLine.Position;
+                        snapLines.Add(marginLine);
+                    }
+                    // Snap right edge to margin
+                    else if (Math.Abs((newLocation.X + selectedElement.Size.Width) - marginLine.Position) < SNAP_THRESHOLD)
+                    {
+                        snapX = marginLine.Position - selectedElement.Size.Width;
+                        snapLines.Add(marginLine);
+                    }
+                }
+                else
+                {
+                    // Snap top edge to margin
+                    if (Math.Abs(newLocation.Y - marginLine.Position) < SNAP_THRESHOLD)
+                    {
+                        snapY = marginLine.Position;
+                        snapLines.Add(marginLine);
+                    }
+                    // Snap bottom edge to margin
+                    else if (Math.Abs((newLocation.Y + selectedElement.Size.Height) - marginLine.Position) < SNAP_THRESHOLD)
+                    {
+                        snapY = marginLine.Position - selectedElement.Size.Height;
+                        snapLines.Add(marginLine);
+                    }
+                }
+            }
 
             return new PointF(snapX, snapY);
+        }
+
+        /// <summary>
+        /// Returns the snap lines for the margins.
+        /// </summary>
+        private List<TimetableDesignerSnapLine> GetMarginSnapLines()
+        {
+            var snapLines = new List<TimetableDesignerSnapLine>();
+
+            // Left margin
+            snapLines.Add(new TimetableDesignerSnapLine { IsVertical = true, Position = MillimetersToPixelsX(PaperMargin.Left) });
+
+            // Right margin
+            snapLines.Add(new TimetableDesignerSnapLine { IsVertical = true, Position = paperWidthPixels - MillimetersToPixelsX(PaperMargin.Right) });
+
+            // Top margin
+            snapLines.Add(new TimetableDesignerSnapLine { IsVertical = false, Position = MillimetersToPixelsY(PaperMargin.Top) });
+
+            // Bottom margin
+            snapLines.Add(new TimetableDesignerSnapLine { IsVertical = false, Position = paperHeightPixels - MillimetersToPixelsY(PaperMargin.Bottom) });
+
+            return snapLines;
         }
 
         /// <summary>
@@ -916,6 +1127,31 @@ namespace TimetableDesignerApp
             this.Invalidate();
         }
 
+        /// <summary>
+        /// Handles the Click event of the Duplicate menu item.
+        /// </summary>
+        private void DuplicateSelectedItem()
+        {
+            if (selectedElement != null)
+            {
+                if (selectedElement is TimetableDesignerTextField textField)
+                {
+                    var newTextField = textField.Clone() as TimetableDesignerTextField;
+                    newTextField.Location = new PointF(selectedElement.Location.X + 20, selectedElement.Location.Y + 20);
+                    elements.Add(newTextField);
+                    selectedElement = newTextField;
+                    this.Invalidate();
+                }
+                else if (selectedElement is TimetableDesignerRectangle rectangle)
+                {
+                    var newRectangle = rectangle.Clone() as TimetableDesignerRectangle;
+                    newRectangle.Location = new PointF(selectedElement.Location.X + 20, selectedElement.Location.Y + 20);
+                    elements.Add(newRectangle);
+                    selectedElement = newRectangle;
+                    this.Invalidate();
+                }
+            }
+        }
 
 
         #endregion
@@ -1054,6 +1290,10 @@ namespace TimetableDesignerApp
                     {
                         AddLineToPdf(gfx, line, pdfWidth, pdfHeight);
                     }
+                    else if(element is TimetableDesignerJizdniRad jizdniRad)
+                    {
+                        AddJizdniRadToPdf(gfx, jizdniRad, pdfWidth, pdfHeight);
+                    }
                 }
 
                 // Save the document
@@ -1089,6 +1329,72 @@ namespace TimetableDesignerApp
                 default:
                     throw new NotImplementedException();
             }
+        }
+
+        /// <summary>
+        /// Adds a jizdni rad to the PDF document.
+        /// </summary>
+        private void AddJizdniRadToPdf(XGraphics gfx, TimetableDesignerJizdniRad jizdniRad, double pdfWidth, double pdfHeight)
+        {
+            const double padding = 2;
+
+            double x = ConvertToPdfSpace(jizdniRad.Location.X, paperWidthPixels, pdfWidth);
+            double y = ConvertToPdfSpace(jizdniRad.Location.Y, paperHeightPixels, pdfHeight);
+
+            double width = ConvertToPdfSpace(jizdniRad.Size.Width, paperWidthPixels, pdfWidth);
+            double height = ConvertToPdfSpace(jizdniRad.Size.Height, paperHeightPixels, pdfHeight);
+
+            // Implementation similar to DrawJizdniRad, but using PDFsharp's XGraphics
+            // You'll need to convert fonts, colors, and drawing methods to their PDFsharp equivalents
+            // This is a simplified version and may need further adjustment
+            XRect rect = new XRect(x, y, width, height);
+            gfx.DrawRectangle(XBrushes.White, rect);
+            gfx.DrawRectangle(XPens.Black, rect);
+
+            double rowHeight = height / (jizdniRad.StationNames.Count + 1);
+            double columnWidth = width / (jizdniRad.Departures.Count + 1);
+
+            // Draw header
+            XRect headerRect = new XRect(x, y, width, rowHeight);
+            XBrush textBrush = new XSolidBrush(ColorToXColor(jizdniRad.TextColor));
+            gfx.DrawRectangle(new XSolidBrush(ColorToXColor(jizdniRad.HeaderColor)), headerRect);
+            gfx.DrawString(jizdniRad.RouteName, new XFont(jizdniRad.HeaderFont.Name, jizdniRad.HeaderFont.Size, XFontStyleEx.Bold),
+                new XSolidBrush(ColorToXColor(jizdniRad.TextColor)), headerRect, XStringFormats.Center);
+
+            // Draw station names and departures
+            XFont contentFont = new XFont(jizdniRad.ContentFont.Name, jizdniRad.ContentFont.Size, XFontStyleEx.Regular);
+            for (int i = 0; i < jizdniRad.StationNames.Count; i++)
+            {
+                double cellY = y + (i + 1) * rowHeight;
+                XRect cellRect = new XRect(x + padding, cellY, columnWidth - 2 * padding, rowHeight);
+                gfx.DrawString(jizdniRad.StationNames[i], contentFont, textBrush, cellRect, XStringFormats.CenterLeft);
+            }
+
+            // Draw departures
+            for (int i = 0; i < jizdniRad.Departures.Count; i++)
+            {
+                for (int j = 0; j < jizdniRad.Departures[i].Count; j++)
+                {
+                    double cellX = x + (i + 1) * columnWidth;
+                    double cellY = y + (j + 1) * rowHeight;
+                    XRect cellRect = new XRect(cellX + padding, cellY, columnWidth - 2 * padding, rowHeight);
+                    gfx.DrawString(jizdniRad.Departures[i][j], contentFont, textBrush, cellRect, XStringFormats.Center);
+                }
+            }
+
+            // Draw grid lines
+            XPen gridPen = new XPen(XColors.LightGray, 0.5);
+            for (int i = 1; i <= jizdniRad.StationNames.Count + 1; i++)
+            {
+                double lineY = y + i * rowHeight;
+                gfx.DrawLine(gridPen, x, lineY, x + width, lineY);
+            }
+            for (int i = 1; i <= jizdniRad.Departures.Count; i++)
+            {
+                double lineX = x + i * columnWidth;
+                gfx.DrawLine(gridPen, lineX, y, lineX, y + height);
+            }
+
         }
 
         /// <summary>
@@ -1137,7 +1443,7 @@ namespace TimetableDesignerApp
             }
 
             XFont font = new XFont(textField.Font.FontFamily.Name, textField.Font.Size, xFontStyleEx);
-            XBrush brush = new XSolidBrush(XColor.FromArgb(textField.TextColor.A, textField.TextColor.R, textField.TextColor.G, textField.TextColor.B));
+            XBrush brush = new XSolidBrush(ColorToXColor(textField.TextColor));
 
             XRect layoutRectangle = new XRect(x, y, width, height);
             XTextFormatter tf = new XTextFormatter(gfx);
@@ -1154,8 +1460,8 @@ namespace TimetableDesignerApp
             double width = ConvertToPdfSpace(rectangle.Size.Width, paperWidthPixels, pdfWidth);
             double height = ConvertToPdfSpace(rectangle.Size.Height, paperHeightPixels, pdfHeight);
 
-            XSolidBrush fillBrush = new XSolidBrush(XColor.FromArgb(rectangle.FillColor.A, rectangle.FillColor.R, rectangle.FillColor.G, rectangle.FillColor.B));
-            XPen borderPen = new XPen(XColor.FromArgb(rectangle.BorderColor.A, rectangle.BorderColor.R, rectangle.BorderColor.G, rectangle.BorderColor.B), rectangle.BorderWidth);
+            XSolidBrush fillBrush = new XSolidBrush(ColorToXColor(rectangle.FillColor));
+            XPen borderPen = new XPen(ColorToXColor(rectangle.BorderColor));
 
             gfx.DrawRectangle(borderPen, fillBrush, x, y, width, height);
         }
@@ -1171,7 +1477,7 @@ namespace TimetableDesignerApp
             double x2 = ConvertToPdfSpace(line.EndPoint.X, paperWidthPixels, pdfWidth);
             double y2 = ConvertToPdfSpace(line.EndPoint.Y, paperHeightPixels, pdfHeight);
 
-            XPen linePen = new XPen(XColor.FromArgb(line.Color.A, line.Color.R, line.Color.G, line.Color.B), line.Width);
+            XPen linePen = new XPen(ColorToXColor(line.Color), line.Width);
 
             gfx.DrawLine(linePen, x1, y1, x2, y2);
         }
@@ -1184,37 +1490,14 @@ namespace TimetableDesignerApp
             return (value / originalDimension) * pdfDimension;
         }
 
-        #endregion
-
-        #region Context Menu Handlers
-
-        /// <summary>
-        /// Handles the Click event of the Duplicate menu item.
-        /// </summary>
-        private void DuplicateMenuItem_Click(object sender, EventArgs e)
+        private XColor ColorToXColor(Color color)
         {
-            if (selectedElement != null)
-            {
-                if (selectedElement is TimetableDesignerTextField textField)
-                {
-                    var newTextField = textField.Clone() as TimetableDesignerTextField;
-                    newTextField.Location = new PointF(selectedElement.Location.X + 20, selectedElement.Location.Y + 20);
-                    elements.Add(newTextField);
-                    selectedElement = newTextField;
-                    this.Invalidate();
-                }
-                else if (selectedElement is TimetableDesignerRectangle rectangle)
-                {
-                    var newRectangle = rectangle.Clone() as TimetableDesignerRectangle;
-                    newRectangle.Location = new PointF(selectedElement.Location.X + 20, selectedElement.Location.Y + 20);
-                    elements.Add(newRectangle);
-                    selectedElement = newRectangle;
-                    this.Invalidate();
-                }
-            }
+            return XColor.FromArgb(color.A, color.R, color.G, color.B);
         }
 
         #endregion
+
+
     }
 
     /// <summary>
@@ -1319,7 +1602,32 @@ namespace TimetableDesignerApp
             return (TimetableDesignerLine)this.MemberwiseClone();
         }
     }
+    public class TimetableDesignerJizdniRad : TimetableDesignerElement
+    {
+        public List<string> StationNames { get; set; } = new List<string>();
+        public List<List<string>> Departures { get; set; } = new List<List<string>>();
+        public string RouteName { get; set; }
+        public Color HeaderColor { get; set; } = Color.LightGray;
+        public Color TextColor { get; set; } = Color.Black;
+        public Font HeaderFont { get; set; }
+        public Font ContentFont { get; set; }
 
+        public TimetableDesignerJizdniRad()
+        {
+            HeaderFont = new Font("Arial", 10, FontStyle.Bold);
+            ContentFont = new Font("Arial", 9, FontStyle.Regular);
+        }
+
+        public override TimetableDesignerElement Clone()
+        {
+            var clone = (TimetableDesignerJizdniRad)base.Clone();
+            clone.StationNames = new List<string>(StationNames);
+            clone.Departures = Departures.Select(l => new List<string>(l)).ToList();
+            clone.HeaderFont = (Font)HeaderFont.Clone();
+            clone.ContentFont = (Font)ContentFont.Clone();
+            return clone;
+        }
+    }
 
 
 }

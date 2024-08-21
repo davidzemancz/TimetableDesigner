@@ -20,7 +20,7 @@ namespace TimetableDesignerApp
             InitializeComponent();
         }
 
-      
+
 
         #region Events
 
@@ -46,7 +46,7 @@ namespace TimetableDesignerApp
             else if (e.ClickedItem == tsbZoomOut)
             {
                 timetableDesigner.ScaleFactor -= 0.1f;
-                
+
             }
             else if (e.ClickedItem == tsbSavePdf)
             {
@@ -95,25 +95,39 @@ namespace TimetableDesignerApp
                 fontDialog.ShowColor = true;
                 var dr = fontDialog.ShowDialog();
                 if (dr != DialogResult.OK) return;
-                timetableDesigner.AddTextField("textField", new Point(0, 0), new Size(100, 30), fontDialog.Font, fontDialog.Color);
+                timetableDesigner.AddTextField("textField", new Point(0, 0), fontDialog.Font, fontDialog.Color);
             }
-            else if(e.ClickedItem == tsBtnAddRect)
+            else if (e.ClickedItem == tsBtnAddRect)
             {
                 ColorDialog colorDialog = new ColorDialog();
                 var dr = colorDialog.ShowDialog();
                 if (dr != DialogResult.OK) return;
                 timetableDesigner.AddRectangle(new Point(0, 0), new Size(100, 50), Color.Empty, colorDialog.Color, 1);
             }
-            else if(e.ClickedItem == tsBtnAddFilledRect)
+            else if (e.ClickedItem == tsBtnAddFilledRect)
             {
                 ColorDialog colorDialog = new ColorDialog();
                 var dr = colorDialog.ShowDialog();
                 if (dr != DialogResult.OK) return;
                 timetableDesigner.AddRectangle(new Point(0, 0), new Size(100, 50), colorDialog.Color, Color.Empty, 0);
             }
-            else if(e.ClickedItem == tsBtnAddLine)
+            else if (e.ClickedItem == tsBtnAddLine)
             {
                 timetableDesigner.AddLine(new Point(0, 0), new Point(100, 100), Color.Black, 1);
+            }
+            else if (e.ClickedItem == tsbAddJizdniRad)
+            {
+                timetableDesigner.AddJizdniRad(
+                    new PointF(100, 100),
+                    new SizeF(400, 300),
+                    "Bus Route 123",
+                    new List<string> { "Station A", "Station B", "Station C" },
+                    new List<List<string>> {
+                        new List<string> { "08:00", "08:30", "09:00" },
+                        new List<string> { "10:00", "10:30", "11:00" },
+                        new List<string> { "12:00", "12:30", "13:00" }
+                    }
+                );
             }
         }
 
