@@ -30,13 +30,28 @@ namespace TimetableDesignerApp
 
         private const float A4_WIDTH_MM = 210;
         private const float A4_HEIGHT_MM = 297;
+        private const float A5_WIDTH_MM = 148;
+        private const float A5_HEIGHT_MM = 210;
+
         private const float MM_PER_INCH = 25.4f;
         private const int RESIZE_HANDLE_SIZE = 8;
         private const float SNAP_THRESHOLD = 5f; // Threshold for snapping in paper space
         private const int RULER_SIZE = 20; // Width/Height of the rulers
         private const int TICK_SIZE = 5; // Size of tick marks on rulers
-        private const int MAJOR_TICK_INTERVAL = 100; // Interval for major tick marks (in paper space)
+        private const int MAJOR_TICK_INTERVAL = 50; // Interval for major tick marks (in paper space)
         const int ELEMENT_MIN_SIZE = 10; // Minimal size of an element
+
+        #endregion
+
+        #region Enums
+
+        public enum PaperSizes
+        {
+            A4 = 0,
+            A5 = 1,
+            A4_Landscape = 2,
+            A5_Landscape = 3
+        }
 
         #endregion
 
@@ -61,13 +76,29 @@ namespace TimetableDesignerApp
         /// Gets or sets the margins for the paper in millimeters.
         /// </summary>
         public Padding PaperMargin { get; set; } = new Padding(10); // Default 10mm margin on all sides
+       
+        /// <summary>
+        /// Paper size.
+        /// </summary>
+        public PaperSizes PaperSize
+        {
+            get => paperSize;
+            set
+            {
+                paperSize = value;
+                UpdatePaperDimensions();
+                Invalidate();
+            }
+        }
 
         #endregion
 
         #region Private fields 
 
-        private float a4WidthPixels;
-        private float a4HeightPixels;
+        private float paperWidthPixels;
+        private float paperHeightPixels;
+        private float paperWidthMm;
+        private float paperHeightMm;
         private List<TimetableDesignerElement> elements = new List<TimetableDesignerElement>();
         private TimetableDesignerElement selectedElement;
         private PointF lastMousePosition;
@@ -77,6 +108,7 @@ namespace TimetableDesignerApp
         private ContextMenuStrip contextMenu;
         private Rectangle paperRect;
         private float dpiX, dpiY;
+        private PaperSizes paperSize = PaperSizes.A4;
 
         #endregion
 
@@ -177,8 +209,8 @@ namespace TimetableDesignerApp
 
             dpiX = e.Graphics.DpiX;
             dpiY = e.Graphics.DpiY;
-            a4WidthPixels = MillimetersToPixelsX(A4_WIDTH_MM);
-            a4HeightPixels = MillimetersToPixelsY(A4_HEIGHT_MM);
+            paperWidthPixels = MillimetersToPixelsX(paperWidthMm);
+            paperHeightPixels = MillimetersToPixelsY(paperHeightMm);
 
             paperRect = GetPaperRectangle();
 
@@ -318,8 +350,8 @@ namespace TimetableDesignerApp
         /// </summary>
         private void DrawPaper(Graphics g)
         {
-            float paperWidth = a4WidthPixels * ScaleFactor;
-            float paperHeight = a4HeightPixels * ScaleFactor;
+            float paperWidth = paperWidthPixels * ScaleFactor;
+            float paperHeight = paperHeightPixels * ScaleFactor;
             float x = (this.Width - paperWidth) / 2;
             float y = (this.Height - paperHeight) / 2;
 
@@ -370,25 +402,29 @@ namespace TimetableDesignerApp
             SizeF markSize = g.MeasureString("100", Font);
 
             // Draw tick marks and numbers
-            for (int mm = 0; mm <= A4_WIDTH_MM; mm++)
+            for (int mm = 0; mm <= paperWidthMm; mm++)
             {
+                bool majorTick = mm % MAJOR_TICK_INTERVAL == 0 || mm == paperWidthMm;
+
                 float x = MillimetersToPixelsX(mm) * ScaleFactor + paperRect.Left;
-                int tickHeight = mm % MAJOR_TICK_INTERVAL == 0 ? TICK_SIZE * 2 : TICK_SIZE;
+                int tickHeight = majorTick ? TICK_SIZE * 2 : TICK_SIZE;
                 g.DrawLine(Pens.Black, x, paperRect.Top - tickHeight, x, paperRect.Top);
 
-                if (mm % MAJOR_TICK_INTERVAL == 0)
+                if (majorTick)
                 {
                     g.DrawString(mm.ToString(), this.Font, Brushes.Black, x - 10, paperRect.Top - RULER_SIZE);
                 }
             }
 
-            for (int mm = 0; mm <= A4_HEIGHT_MM; mm++)
+            for (int mm = 0; mm <= paperHeightMm; mm++)
             {
+                bool majorTick = mm % MAJOR_TICK_INTERVAL == 0 || mm == paperHeightMm;
+
                 float y = MillimetersToPixelsY(mm) * ScaleFactor + paperRect.Top;
-                int tickWidth = mm % MAJOR_TICK_INTERVAL == 0 ? TICK_SIZE * 2 : TICK_SIZE;
+                int tickWidth = majorTick ? TICK_SIZE * 2 : TICK_SIZE;
                 g.DrawLine(Pens.Black, paperRect.Left - tickWidth, y, paperRect.Left, y);
 
-                if (mm % MAJOR_TICK_INTERVAL == 0)
+                if (majorTick)
                 {
                     g.DrawString(mm.ToString(), this.Font, Brushes.Black, paperRect.Left - markSize.Width - 4, y - 10);
                 }
@@ -746,8 +782,8 @@ namespace TimetableDesignerApp
                 // Check if the text field is not moved outside the paper
                 if (newLocation.X < 0) newLocation.X = 0;
                 if (newLocation.Y < 0) newLocation.Y = 0;
-                if (newLocation.X + selectedElement.Size.Width > a4WidthPixels) newLocation.X = a4WidthPixels - selectedElement.Size.Width;
-                if (newLocation.Y + selectedElement.Size.Height > a4HeightPixels) newLocation.Y = a4HeightPixels - selectedElement.Size.Height;
+                if (newLocation.X + selectedElement.Size.Width > paperWidthPixels) newLocation.X = paperWidthPixels - selectedElement.Size.Width;
+                if (newLocation.Y + selectedElement.Size.Height > paperHeightPixels) newLocation.Y = paperHeightPixels - selectedElement.Size.Height;
 
                 // Apply snapping
                 newLocation = ApplySnapping(newLocation);
@@ -894,6 +930,36 @@ namespace TimetableDesignerApp
 
         #region Coordinate Conversion
 
+        private void UpdatePaperDimensions()
+        {
+            switch (paperSize)
+            {
+                case PaperSizes.A4:
+                    paperWidthMm = A4_WIDTH_MM;
+                    paperHeightMm = A4_HEIGHT_MM;
+                    break;
+                case PaperSizes.A5:
+                    paperWidthMm = A5_WIDTH_MM;
+                    paperHeightMm = A5_HEIGHT_MM;
+                    break;
+                case PaperSizes.A4_Landscape:
+                    paperWidthMm = A4_HEIGHT_MM;
+                    paperHeightMm = A4_WIDTH_MM;
+                    break;
+                case PaperSizes.A5_Landscape:
+                    paperWidthMm = A5_HEIGHT_MM;
+                    paperHeightMm = A5_WIDTH_MM;
+                    break;
+            }
+            UpdatePaperPixels();
+        }
+
+        private void UpdatePaperPixels()
+        {
+            paperWidthPixels = MillimetersToPixelsX(paperWidthMm);
+            paperHeightPixels = MillimetersToPixelsY(paperHeightMm);
+        }
+
         private Font GetScaledFont(Font font)
         {
             return new Font(font.FontFamily, font.Size * ScaleFactor, font.Style);
@@ -905,8 +971,8 @@ namespace TimetableDesignerApp
         /// <returns></returns>
         private Rectangle GetPaperRectangle()
         {
-            float paperWidth = a4WidthPixels * ScaleFactor;
-            float paperHeight = a4HeightPixels * ScaleFactor;
+            float paperWidth = paperWidthPixels * ScaleFactor;
+            float paperHeight = paperHeightPixels * ScaleFactor;
             float x = (this.Width - paperWidth) / 2;
             float y = (this.Height - paperHeight) / 2;
 
@@ -947,7 +1013,8 @@ namespace TimetableDesignerApp
             using (PdfDocument document = new PdfDocument())
             {
                 PdfPage page = document.AddPage();
-                page.Size = PdfSharp.PageSize.A4;
+                page.Size = GetPdfPageSize();
+                page.Orientation = GetPdfOrientation();
                 XGraphics gfx = XGraphics.FromPdfPage(page);
 
                 double pdfWidth = page.Width.Point;
@@ -978,7 +1045,35 @@ namespace TimetableDesignerApp
             }
         }
 
-       
+        private PdfSharp.PageSize GetPdfPageSize()
+        {
+            switch (paperSize)
+            {
+                case PaperSizes.A4:
+                case PaperSizes.A4_Landscape:
+                    return PdfSharp.PageSize.A4;
+                case PaperSizes.A5:
+                case PaperSizes.A5_Landscape:
+                    return PdfSharp.PageSize.A5;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        private PdfSharp.PageOrientation GetPdfOrientation()
+        {
+            switch (paperSize)
+            {
+                case PaperSizes.A4:
+                case PaperSizes.A5:
+                    return PdfSharp.PageOrientation.Portrait;
+                case PaperSizes.A4_Landscape:
+                case PaperSizes.A5_Landscape:
+                    return PdfSharp.PageOrientation.Landscape;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
 
         /// <summary>
         /// Adds margin lines to the PDF document.
@@ -989,20 +1084,20 @@ namespace TimetableDesignerApp
             marginPen.DashStyle = XDashStyle.Dash;
 
             // Left margin
-            gfx.DrawLine(marginPen, ConvertToPdfSpace(Margin.Left, a4WidthPixels, pdfWidth), 0,
-                         ConvertToPdfSpace(Margin.Left, a4WidthPixels, pdfWidth), pdfHeight);
+            gfx.DrawLine(marginPen, ConvertToPdfSpace(Margin.Left, paperWidthPixels, pdfWidth), 0,
+                         ConvertToPdfSpace(Margin.Left, paperWidthPixels, pdfWidth), pdfHeight);
 
             // Right margin
-            gfx.DrawLine(marginPen, pdfWidth - ConvertToPdfSpace(Margin.Right, a4WidthPixels, pdfWidth), 0,
-                         pdfWidth - ConvertToPdfSpace(Margin.Right, a4WidthPixels, pdfWidth), pdfHeight);
+            gfx.DrawLine(marginPen, pdfWidth - ConvertToPdfSpace(Margin.Right, paperWidthPixels, pdfWidth), 0,
+                         pdfWidth - ConvertToPdfSpace(Margin.Right, paperWidthPixels, pdfWidth), pdfHeight);
 
             // Top margin
-            gfx.DrawLine(marginPen, 0, ConvertToPdfSpace(Margin.Top, a4HeightPixels, pdfHeight),
-                         pdfWidth, ConvertToPdfSpace(Margin.Top, a4HeightPixels, pdfHeight));
+            gfx.DrawLine(marginPen, 0, ConvertToPdfSpace(Margin.Top, paperHeightPixels, pdfHeight),
+                         pdfWidth, ConvertToPdfSpace(Margin.Top, paperHeightPixels, pdfHeight));
 
             // Bottom margin
-            gfx.DrawLine(marginPen, 0, pdfHeight - ConvertToPdfSpace(Margin.Bottom, a4HeightPixels, pdfHeight),
-                         pdfWidth, pdfHeight - ConvertToPdfSpace(Margin.Bottom, a4HeightPixels, pdfHeight));
+            gfx.DrawLine(marginPen, 0, pdfHeight - ConvertToPdfSpace(Margin.Bottom, paperHeightPixels, pdfHeight),
+                         pdfWidth, pdfHeight - ConvertToPdfSpace(Margin.Bottom, paperHeightPixels, pdfHeight));
         }
 
         /// <summary>
@@ -1010,10 +1105,10 @@ namespace TimetableDesignerApp
         /// </summary>
         private void AddTextFieldToPdf(XGraphics gfx, TimetableDesignerTextField textField, double pdfWidth, double pdfHeight)
         {
-            double x = ConvertToPdfSpace(textField.Location.X, a4WidthPixels, pdfWidth);
-            double y = ConvertToPdfSpace(textField.Location.Y, a4HeightPixels, pdfHeight);
-            double width = ConvertToPdfSpace(textField.Size.Width, a4WidthPixels, pdfWidth);
-            double height = ConvertToPdfSpace(textField.Size.Height, a4HeightPixels, pdfHeight);
+            double x = ConvertToPdfSpace(textField.Location.X, paperWidthPixels, pdfWidth);
+            double y = ConvertToPdfSpace(textField.Location.Y, paperHeightPixels, pdfHeight);
+            double width = ConvertToPdfSpace(textField.Size.Width, paperWidthPixels, pdfWidth);
+            double height = ConvertToPdfSpace(textField.Size.Height, paperHeightPixels, pdfHeight);
 
             XFontStyleEx xFontStyleEx = XFontStyleEx.Regular;
             if (textField.Font.Style == FontStyle.Bold)
@@ -1038,10 +1133,10 @@ namespace TimetableDesignerApp
         /// </summary>
         private void AddRectangleToPdf(XGraphics gfx, TimetableDesignerRectangle rectangle, double pdfWidth, double pdfHeight)
         {
-            double x = ConvertToPdfSpace(rectangle.Location.X, a4WidthPixels, pdfWidth);
-            double y = ConvertToPdfSpace(rectangle.Location.Y, a4HeightPixels, pdfHeight);
-            double width = ConvertToPdfSpace(rectangle.Size.Width, a4WidthPixels, pdfWidth);
-            double height = ConvertToPdfSpace(rectangle.Size.Height, a4HeightPixels, pdfHeight);
+            double x = ConvertToPdfSpace(rectangle.Location.X, paperWidthPixels, pdfWidth);
+            double y = ConvertToPdfSpace(rectangle.Location.Y, paperHeightPixels, pdfHeight);
+            double width = ConvertToPdfSpace(rectangle.Size.Width, paperWidthPixels, pdfWidth);
+            double height = ConvertToPdfSpace(rectangle.Size.Height, paperHeightPixels, pdfHeight);
 
             XSolidBrush fillBrush = new XSolidBrush(XColor.FromArgb(rectangle.FillColor.A, rectangle.FillColor.R, rectangle.FillColor.G, rectangle.FillColor.B));
             XPen borderPen = new XPen(XColor.FromArgb(rectangle.BorderColor.A, rectangle.BorderColor.R, rectangle.BorderColor.G, rectangle.BorderColor.B), rectangle.BorderWidth);
@@ -1054,11 +1149,11 @@ namespace TimetableDesignerApp
         /// </summary>
         private void AddLineToPdf(XGraphics gfx, TimetableDesignerLine line, double pdfWidth, double pdfHeight)
         {
-            double x1 = ConvertToPdfSpace(line.StartPoint.X, a4WidthPixels, pdfWidth);
-            double y1 = ConvertToPdfSpace(line.StartPoint.Y, a4HeightPixels, pdfHeight);
+            double x1 = ConvertToPdfSpace(line.StartPoint.X, paperWidthPixels, pdfWidth);
+            double y1 = ConvertToPdfSpace(line.StartPoint.Y, paperHeightPixels, pdfHeight);
 
-            double x2 = ConvertToPdfSpace(line.EndPoint.X, a4WidthPixels, pdfWidth);
-            double y2 = ConvertToPdfSpace(line.EndPoint.Y, a4HeightPixels, pdfHeight);
+            double x2 = ConvertToPdfSpace(line.EndPoint.X, paperWidthPixels, pdfWidth);
+            double y2 = ConvertToPdfSpace(line.EndPoint.Y, paperHeightPixels, pdfHeight);
 
             XPen linePen = new XPen(XColor.FromArgb(line.Color.A, line.Color.R, line.Color.G, line.Color.B), line.Width);
 

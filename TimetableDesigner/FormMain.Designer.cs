@@ -38,15 +38,16 @@
             this.tsbSavePdf = new System.Windows.Forms.ToolStripButton();
             this.toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
             this.tsTxbMargin = new System.Windows.Forms.ToolStripTextBox();
+            this.tsCbPaperSize = new System.Windows.Forms.ToolStripComboBox();
             this.fontDialog1 = new System.Windows.Forms.FontDialog();
-            this.reportDesigner1 = new TimetableDesignerApp.TimetableDesigner();
+            this.timetableDesigner = new TimetableDesignerApp.TimetableDesigner();
             this.tsElements = new System.Windows.Forms.ToolStrip();
             this.tsbAddTextField = new System.Windows.Forms.ToolStripButton();
             this.tsBtnAddRect = new System.Windows.Forms.ToolStripButton();
             this.tsBtnAddFilledRect = new System.Windows.Forms.ToolStripButton();
             this.tsBtnAddLine = new System.Windows.Forms.ToolStripButton();
             this.tsActions.SuspendLayout();
-            this.reportDesigner1.SuspendLayout();
+            this.timetableDesigner.SuspendLayout();
             this.tsElements.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -59,7 +60,8 @@
             this.tsbSnapping,
             this.tsbSavePdf,
             this.toolStripLabel1,
-            this.tsTxbMargin});
+            this.tsTxbMargin,
+            this.tsCbPaperSize});
             this.tsActions.Location = new System.Drawing.Point(0, 0);
             this.tsActions.Name = "tsActions";
             this.tsActions.Size = new System.Drawing.Size(1206, 25);
@@ -130,18 +132,26 @@
             this.tsTxbMargin.TextBoxTextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.tsTxbMargin.TextChanged += new System.EventHandler(this.tsTxbMargin_TextChanged);
             // 
+            // tsCbPaperSize
+            // 
+            this.tsCbPaperSize.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.tsCbPaperSize.Name = "tsCbPaperSize";
+            this.tsCbPaperSize.Size = new System.Drawing.Size(121, 25);
+            this.tsCbPaperSize.SelectedIndexChanged += new System.EventHandler(this.tsCbPaperSize_SelectedIndexChanged);
+            // 
             // reportDesigner1
             // 
-            this.reportDesigner1.Controls.Add(this.tsElements);
-            this.reportDesigner1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.reportDesigner1.Location = new System.Drawing.Point(0, 25);
-            this.reportDesigner1.Name = "reportDesigner1";
-            this.reportDesigner1.PaperMargin = new System.Windows.Forms.Padding(10);
-            this.reportDesigner1.ScaleFactor = 0.5F;
-            this.reportDesigner1.ScaleFontWhileResizing = false;
-            this.reportDesigner1.Size = new System.Drawing.Size(1206, 865);
-            this.reportDesigner1.SnappingEnabled = true;
-            this.reportDesigner1.TabIndex = 1;
+            this.timetableDesigner.Controls.Add(this.tsElements);
+            this.timetableDesigner.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.timetableDesigner.Location = new System.Drawing.Point(0, 25);
+            this.timetableDesigner.Name = "reportDesigner1";
+            this.timetableDesigner.PaperMargin = new System.Windows.Forms.Padding(10);
+            this.timetableDesigner.PaperSize = TimetableDesignerApp.TimetableDesigner.PaperSizes.A4;
+            this.timetableDesigner.ScaleFactor = 0.5F;
+            this.timetableDesigner.ScaleFontWhileResizing = false;
+            this.timetableDesigner.Size = new System.Drawing.Size(1206, 865);
+            this.timetableDesigner.SnappingEnabled = true;
+            this.timetableDesigner.TabIndex = 1;
             // 
             // tsElements
             // 
@@ -198,15 +208,15 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1206, 890);
-            this.Controls.Add(this.reportDesigner1);
+            this.Controls.Add(this.timetableDesigner);
             this.Controls.Add(this.tsActions);
             this.Name = "FormMain";
             this.Text = "Form1";
             this.Load += new System.EventHandler(this.FormMain_Load);
             this.tsActions.ResumeLayout(false);
             this.tsActions.PerformLayout();
-            this.reportDesigner1.ResumeLayout(false);
-            this.reportDesigner1.PerformLayout();
+            this.timetableDesigner.ResumeLayout(false);
+            this.timetableDesigner.PerformLayout();
             this.tsElements.ResumeLayout(false);
             this.tsElements.PerformLayout();
             this.ResumeLayout(false);
@@ -217,7 +227,7 @@
         #endregion
 
         private System.Windows.Forms.ToolStrip tsActions;
-        private TimetableDesigner reportDesigner1;
+        private TimetableDesigner timetableDesigner;
         private System.Windows.Forms.ToolStripButton tsbZoomIn;
         private System.Windows.Forms.ToolStripButton tsbZoomOut;
         private System.Windows.Forms.ToolStripButton tsbSavePdf;
@@ -231,6 +241,7 @@
         private System.Windows.Forms.ToolStripButton tsBtnAddFilledRect;
         private System.Windows.Forms.ToolStripButton tsBtnAddRect;
         private System.Windows.Forms.ToolStripButton tsBtnAddLine;
+        private System.Windows.Forms.ToolStripComboBox tsCbPaperSize;
     }
 }
 

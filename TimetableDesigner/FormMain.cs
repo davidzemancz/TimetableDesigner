@@ -26,21 +26,28 @@ namespace TimetableDesignerApp
 
         private void FormMain_Load(object sender, EventArgs e)
         {
-            reportDesigner1.ScaleFactor = 0.65f;
-            tsTxbMargin.Text = reportDesigner1.PaperMargin.Left.ToString();
+            timetableDesigner.ScaleFactor = 0.65f;
+            tsTxbMargin.Text = timetableDesigner.PaperMargin.Left.ToString();
+
+            // Paper sizes
+            foreach (var paperSize in Enum.GetValues(typeof(TimetableDesigner.PaperSizes)))
+            {
+                tsCbPaperSize.Items.Add(paperSize);
+            }
+            tsCbPaperSize.SelectedItem = TimetableDesigner.PaperSizes.A4;
         }
 
         private void tsActions_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
             if (e.ClickedItem == tsbZoomIn)
             {
-                reportDesigner1.ScaleFactor += 0.1f;
-                reportDesigner1.Invalidate();
+                timetableDesigner.ScaleFactor += 0.1f;
+                timetableDesigner.Invalidate();
             }
             else if (e.ClickedItem == tsbZoomOut)
             {
-                reportDesigner1.ScaleFactor -= 0.1f;
-                reportDesigner1.Invalidate();
+                timetableDesigner.ScaleFactor -= 0.1f;
+                timetableDesigner.Invalidate();
             }
             else if (e.ClickedItem == tsbSavePdf)
             {
@@ -55,7 +62,7 @@ namespace TimetableDesignerApp
                 string outputPath = saveFileDialog.FileName;
 
                 // Export to PDF
-                reportDesigner1.ExportToPdf(outputPath);
+                timetableDesigner.ExportToPdf(outputPath);
 
                 // Ask user if they want to open the file
                 if (MessageBox.Show("The timetable has been saved to " + outputPath + ". Do you want to open it now?", "Timetable Designer", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -66,19 +73,19 @@ namespace TimetableDesignerApp
             }
             else if (e.ClickedItem == tsbSnapping)
             {
-                reportDesigner1.SnappingEnabled = !tsbSnapping.Checked;
+                timetableDesigner.SnappingEnabled = !tsbSnapping.Checked;
             }
             else if (e.ClickedItem == tsbScalingFont)
             {
-                reportDesigner1.ScaleFontWhileResizing = !tsbScalingFont.Checked;
+                timetableDesigner.ScaleFontWhileResizing = !tsbScalingFont.Checked;
             }
         }
 
         private void tsTxbMargin_TextChanged(object sender, EventArgs e)
         {
             int.TryParse(tsTxbMargin.Text, out int margin);
-            reportDesigner1.PaperMargin = new Padding(margin);
-            reportDesigner1.Invalidate();
+            timetableDesigner.PaperMargin = new Padding(margin);
+            timetableDesigner.Invalidate();
         }
 
         private void tsElements_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
@@ -90,26 +97,31 @@ namespace TimetableDesignerApp
                 fontDialog.ShowColor = true;
                 var dr = fontDialog.ShowDialog();
                 if (dr != DialogResult.OK) return;
-                reportDesigner1.AddTextField("textField", new Point(0, 0), new Size(100, 30), fontDialog.Font, fontDialog.Color);
+                timetableDesigner.AddTextField("textField", new Point(0, 0), new Size(100, 30), fontDialog.Font, fontDialog.Color);
             }
             else if(e.ClickedItem == tsBtnAddRect)
             {
                 ColorDialog colorDialog = new ColorDialog();
                 var dr = colorDialog.ShowDialog();
                 if (dr != DialogResult.OK) return;
-                reportDesigner1.AddRectangle(new Point(0, 0), new Size(100, 50), Color.Empty, colorDialog.Color, 1);
+                timetableDesigner.AddRectangle(new Point(0, 0), new Size(100, 50), Color.Empty, colorDialog.Color, 1);
             }
             else if(e.ClickedItem == tsBtnAddFilledRect)
             {
                 ColorDialog colorDialog = new ColorDialog();
                 var dr = colorDialog.ShowDialog();
                 if (dr != DialogResult.OK) return;
-                reportDesigner1.AddRectangle(new Point(0, 0), new Size(100, 50), colorDialog.Color, Color.Empty, 0);
+                timetableDesigner.AddRectangle(new Point(0, 0), new Size(100, 50), colorDialog.Color, Color.Empty, 0);
             }
             else if(e.ClickedItem == tsBtnAddLine)
             {
-                reportDesigner1.AddLine(new Point(0, 0), new Point(100, 100), Color.Black, 1);
+                timetableDesigner.AddLine(new Point(0, 0), new Point(100, 100), Color.Black, 1);
             }
+        }
+
+        private void tsCbPaperSize_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            timetableDesigner.PaperSize = (TimetableDesigner.PaperSizes)tsCbPaperSize.SelectedItem;
         }
 
         #endregion
