@@ -65,8 +65,15 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Scale factor for the paper size.
         /// </summary>
-        public float ScaleFactor { get; set; } = 0.5f;
-
+        public float ScaleFactor
+        {
+            get => scaleFactor;
+            set
+            {
+                scaleFactor = value;
+                Invalidate();
+            }
+        }
         /// <summary>
         /// Scale elements font size while resizing.
         /// </summary>
@@ -75,8 +82,15 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Gets or sets the margins for the paper in millimeters.
         /// </summary>
-        public Padding PaperMargin { get; set; } = new Padding(10); // Default 10mm margin on all sides
-       
+        public Padding PaperMargin
+        {
+            get => paperMargin;
+            set
+            {
+                paperMargin = value;
+                Invalidate();
+            }
+        }
         /// <summary>
         /// Paper size.
         /// </summary>
@@ -109,6 +123,8 @@ namespace TimetableDesignerApp
         private Rectangle paperRect;
         private float dpiX, dpiY;
         private PaperSizes paperSize = PaperSizes.A4;
+        private float scaleFactor = 0.5f;
+        private Padding paperMargin = new Padding(10);
 
         #endregion
 
@@ -510,7 +526,7 @@ namespace TimetableDesignerApp
                 if (element is TimetableDesignerTextField textField)
                 {
                     DrawTextField(g, textField, rect);
-                    
+
                     if (element == selectedElement) DrawResizeHandle(g, rect);
                 }
                 else if (element is TimetableDesignerRectangle rectangle)
@@ -523,7 +539,7 @@ namespace TimetableDesignerApp
                     DrawLine(g, line);
                     if (element == selectedElement) DrawResizeHandle(g, rect);
                 }
-                
+
             }
         }
 
@@ -555,7 +571,7 @@ namespace TimetableDesignerApp
                 g.DrawRectangle(borderPen, rect.X, rect.Y, rect.Width, rect.Height);
             }
         }
-    
+
         /// <summary>
         /// Draws a single text field on the panel.
         /// </summary>
@@ -723,9 +739,9 @@ namespace TimetableDesignerApp
         /// </summary>
         private void ResizeElement(float deltaX, float deltaY)
         {
-           
 
-            if(selectedElement is TimetableDesignerTextField textField)
+
+            if (selectedElement is TimetableDesignerTextField textField)
             {
                 // Scale size
                 selectedElement.Size = new SizeF(
@@ -740,7 +756,7 @@ namespace TimetableDesignerApp
                     textField.Font = scaledFont;
                 }
             }
-            else if(selectedElement is TimetableDesignerLine)
+            else if (selectedElement is TimetableDesignerLine)
             {
                 // Scale size
                 selectedElement.Size = new SizeF(
@@ -770,7 +786,7 @@ namespace TimetableDesignerApp
 
                 line.StartPoint = startPoint;
                 line.EndPoint = endPoint;
-                
+
             }
             else
             {
@@ -1034,7 +1050,7 @@ namespace TimetableDesignerApp
                     {
                         AddRectangleToPdf(gfx, rectangle, pdfWidth, pdfHeight);
                     }
-                    else if(element is TimetableDesignerLine line)
+                    else if (element is TimetableDesignerLine line)
                     {
                         AddLineToPdf(gfx, line, pdfWidth, pdfHeight);
                     }
@@ -1119,7 +1135,7 @@ namespace TimetableDesignerApp
             {
                 xFontStyleEx |= XFontStyleEx.Italic;
             }
-           
+
             XFont font = new XFont(textField.Font.FontFamily.Name, textField.Font.Size, xFontStyleEx);
             XBrush brush = new XSolidBrush(XColor.FromArgb(textField.TextColor.A, textField.TextColor.R, textField.TextColor.G, textField.TextColor.B));
 
@@ -1179,7 +1195,7 @@ namespace TimetableDesignerApp
         {
             if (selectedElement != null)
             {
-                if(selectedElement is TimetableDesignerTextField textField)
+                if (selectedElement is TimetableDesignerTextField textField)
                 {
                     var newTextField = textField.Clone() as TimetableDesignerTextField;
                     newTextField.Location = new PointF(selectedElement.Location.X + 20, selectedElement.Location.Y + 20);
@@ -1187,7 +1203,7 @@ namespace TimetableDesignerApp
                     selectedElement = newTextField;
                     this.Invalidate();
                 }
-                else if(selectedElement is TimetableDesignerRectangle rectangle)
+                else if (selectedElement is TimetableDesignerRectangle rectangle)
                 {
                     var newRectangle = rectangle.Clone() as TimetableDesignerRectangle;
                     newRectangle.Location = new PointF(selectedElement.Location.X + 20, selectedElement.Location.Y + 20);
@@ -1250,7 +1266,7 @@ namespace TimetableDesignerApp
         public float Position { get; set; }
     }
 
-    
+
     public class TimetableDesignerLine : TimetableDesignerElement
     {
         private PointF startPoint;
@@ -1266,23 +1282,23 @@ namespace TimetableDesignerApp
                 Size = new SizeF(Math.Abs(endPoint.X - startPoint.X), Math.Abs(endPoint.Y - startPoint.Y));
             }
         }
-        public PointF EndPoint 
-        { 
-            get => endPoint; 
+        public PointF EndPoint
+        {
+            get => endPoint;
             set
-            { 
+            {
                 endPoint = value;
                 base.Size = new SizeF(Math.Abs(EndPoint.X - startPoint.X), Math.Abs(EndPoint.Y - startPoint.Y));
             }
         }
-        public override PointF Location 
-        { 
+        public override PointF Location
+        {
             get => base.Location;
             set
             {
                 base.Location = value;
                 StartPoint = value;
-            } 
+            }
         }
 
         public override SizeF Size

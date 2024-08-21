@@ -42,12 +42,11 @@ namespace TimetableDesignerApp
             if (e.ClickedItem == tsbZoomIn)
             {
                 timetableDesigner.ScaleFactor += 0.1f;
-                timetableDesigner.Invalidate();
             }
             else if (e.ClickedItem == tsbZoomOut)
             {
                 timetableDesigner.ScaleFactor -= 0.1f;
-                timetableDesigner.Invalidate();
+                
             }
             else if (e.ClickedItem == tsbSavePdf)
             {
@@ -85,7 +84,6 @@ namespace TimetableDesignerApp
         {
             int.TryParse(tsTxbMargin.Text, out int margin);
             timetableDesigner.PaperMargin = new Padding(margin);
-            timetableDesigner.Invalidate();
         }
 
         private void tsElements_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
