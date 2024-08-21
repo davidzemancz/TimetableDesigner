@@ -15,6 +15,7 @@ using Point = System.Drawing.Point;
 using Rectangle = System.Drawing.Rectangle;
 using PdfSharp.Fonts;
 using System.Net;
+using System.Data;
 
 namespace TimetableDesignerApp
 {
@@ -35,6 +36,7 @@ namespace TimetableDesignerApp
         private const int RULER_SIZE = 20; // Width/Height of the rulers
         private const int TICK_SIZE = 5; // Size of tick marks on rulers
         private const int MAJOR_TICK_INTERVAL = 100; // Interval for major tick marks (in paper space)
+        const int ELEMENT_MIN_SIZE = 10; // Minimal size of an element
 
         #endregion
 
@@ -155,8 +157,8 @@ namespace TimetableDesignerApp
             {
                 StartPoint = startPoint,
                 EndPoint = endPoint,
-                LineColor = lineColor,
-                LineWidth = lineWidth,
+                Color = lineColor,
+                Width = lineWidth,
             });
             this.Invalidate();
         }
@@ -225,7 +227,7 @@ namespace TimetableDesignerApp
                     if (isResizing)
                     {
                         Cursor = Cursors.SizeNWSE;
-                        ResizeTextField(deltaX, deltaY);
+                        ResizeElement(deltaX, deltaY);
                     }
                     else
                     {
@@ -499,7 +501,7 @@ namespace TimetableDesignerApp
             PointF startPoint = PaperToControl(line.StartPoint);
             PointF endPoint = PaperToControl(line.EndPoint);
 
-            using (Pen linePen = new Pen(line.LineColor, line.LineWidth * ScaleFactor))
+            using (Pen linePen = new Pen(line.Color, line.Width * ScaleFactor))
             {
                 g.DrawLine(linePen, startPoint, endPoint);
             }
@@ -683,21 +685,41 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Resizes the selected text field.
         /// </summary>
-        private void ResizeTextField(float deltaX, float deltaY)
+        private void ResizeElement(float deltaX, float deltaY)
         {
-            // Scale size
-            selectedElement.Size = new SizeF(
-                Math.Max(10, selectedElement.Size.Width + deltaX),
-                Math.Max(10, selectedElement.Size.Height + deltaY)
-            );
+           
 
-            // Scale font
-            if (ScaleFontWhileResizing && selectedElement is TimetableDesignerTextField textField)
+            if(selectedElement is TimetableDesignerTextField textField)
             {
-                var scaledFont = new Font(textField.Font.FontFamily, selectedElement.Size.Height / 2.2f, textField.Font.Style, GraphicsUnit.Pixel);
-                textField.Font = scaledFont;
-            }
+                // Scale size
+                selectedElement.Size = new SizeF(
+                    Math.Max(ELEMENT_MIN_SIZE, selectedElement.Size.Width + deltaX),
+                    Math.Max(ELEMENT_MIN_SIZE, selectedElement.Size.Height + deltaY)
+                );
 
+                // Scale font
+                if (ScaleFontWhileResizing)
+                {
+                    var scaledFont = new Font(textField.Font.FontFamily, selectedElement.Size.Height / 2.2f, textField.Font.Style, GraphicsUnit.Pixel);
+                    textField.Font = scaledFont;
+                }
+            }
+            else if(selectedElement is TimetableDesignerLine)
+            {
+                // Scale size
+                selectedElement.Size = new SizeF(
+                   selectedElement.Size.Width + deltaX,
+                    selectedElement.Size.Height + deltaY
+                );
+            }
+            else
+            {
+                // Scale size
+                selectedElement.Size = new SizeF(
+                    Math.Max(ELEMENT_MIN_SIZE, selectedElement.Size.Width + deltaX),
+                    Math.Max(ELEMENT_MIN_SIZE, selectedElement.Size.Height + deltaY)
+                );
+            }
         }
 
         /// <summary>
@@ -945,12 +967,18 @@ namespace TimetableDesignerApp
                     {
                         AddRectangleToPdf(gfx, rectangle, pdfWidth, pdfHeight);
                     }
+                    else if(element is TimetableDesignerLine line)
+                    {
+                        AddLineToPdf(gfx, line, pdfWidth, pdfHeight);
+                    }
                 }
 
                 // Save the document
                 document.Save(filePath);
             }
         }
+
+       
 
         /// <summary>
         /// Adds margin lines to the PDF document.
@@ -1019,6 +1047,22 @@ namespace TimetableDesignerApp
             XPen borderPen = new XPen(XColor.FromArgb(rectangle.BorderColor.A, rectangle.BorderColor.R, rectangle.BorderColor.G, rectangle.BorderColor.B), rectangle.BorderWidth);
 
             gfx.DrawRectangle(borderPen, fillBrush, x, y, width, height);
+        }
+
+        /// <summary>
+        /// Adds a line to PDF document
+        /// </summary>
+        private void AddLineToPdf(XGraphics gfx, TimetableDesignerLine line, double pdfWidth, double pdfHeight)
+        {
+            double x1 = ConvertToPdfSpace(line.StartPoint.X, a4WidthPixels, pdfWidth);
+            double y1 = ConvertToPdfSpace(line.StartPoint.Y, a4HeightPixels, pdfHeight);
+
+            double x2 = ConvertToPdfSpace(line.EndPoint.X, a4WidthPixels, pdfWidth);
+            double y2 = ConvertToPdfSpace(line.EndPoint.Y, a4HeightPixels, pdfHeight);
+
+            XPen linePen = new XPen(XColor.FromArgb(line.Color.A, line.Color.R, line.Color.G, line.Color.B), line.Width);
+
+            gfx.DrawLine(linePen, x1, y1, x2, y2);
         }
 
         /// <summary>
@@ -1156,8 +1200,8 @@ namespace TimetableDesignerApp
             }
         }
 
-        public Color LineColor { get; set; }
-        public float LineWidth { get; set; }
+        public Color Color { get; set; }
+        public float Width { get; set; }
 
         public override TimetableDesignerElement Clone()
         {
