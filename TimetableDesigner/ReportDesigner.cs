@@ -43,6 +43,7 @@ namespace TimetableDesignerApp
 
         private List<RDSection> sections = new List<RDSection>();
         private RDSection selectedSection;
+        private RDElement selectedElement;
         private ToolStrip toolStrip;
         private PaperSize paperSize;
         private float paperWidthMm;
@@ -59,6 +60,20 @@ namespace TimetableDesignerApp
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Gets or sets the currently selected element.
+        /// </summary>
+        public RDElement SelectedElement
+        {
+            get => selectedElement;
+            set
+            {
+                selectedElement = value;
+                if (selectedElement != null) SelectedSection = selectedElement.ParentSection;
+                else Invalidate();
+            }
+        }
 
         /// <summary>
         /// Gets or sets the currently selected section.
@@ -233,6 +248,7 @@ namespace TimetableDesignerApp
         {
             elements.Add(element);
             Invalidate();
+            SelectedElement = element;
         }
 
         #endregion
@@ -373,7 +389,8 @@ namespace TimetableDesignerApp
             float topMarginPixels = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
             foreach (var element in elements)
             {
-                element.Draw(g, x, topMarginPixels, dpiX, dpiY);
+                bool selected = element == selectedElement;
+                element.Draw(g, x, topMarginPixels, dpiX, dpiY, selected);
             }
         }
 
@@ -460,6 +477,7 @@ namespace TimetableDesignerApp
             float mouseXMm = PixelsToMm((e.X / zoomFactor) - paperX, dpiX);
             float mouseYMm = PixelsToMm((e.Y / zoomFactor) - paperTopMarginPixels, dpiY);
 
+            // Selected (resizable) section
             resizingSection = GetResizingSection(mouseYMm);
             if (resizingSection != null)
             {
@@ -471,6 +489,9 @@ namespace TimetableDesignerApp
             {
                 SelectedSection = GetSectionAtPoint(mouseXMm, mouseYMm);
             }
+
+            // Selected element
+            SelectedElement = GetElementAtPoint(mouseXMm, mouseYMm);
         }
 
         /// <summary>
@@ -498,6 +519,18 @@ namespace TimetableDesignerApp
                 xMm <= section.LocationMM.X + section.WidthMM &&
                 yMm >= section.LocationMM.Y &&
                 yMm <= section.LocationMM.Y + section.HeightMM);
+        }
+
+        /// <summary>
+        /// Gets the element at the specified point.
+        /// </summary>
+        private RDElement GetElementAtPoint(float xMm, float yMm)
+        {
+            return elements.FirstOrDefault(element =>
+                xMm >= element.PaperLocationMM.X &&
+                xMm <= element.PaperLocationMM.X + element.WidthMM &&
+                yMm >= element.PaperLocationMM.Y &&
+                yMm <= element.PaperLocationMM.Y + element.HeightMM);
         }
 
         /// <summary>
@@ -607,7 +640,7 @@ namespace TimetableDesignerApp
             float height = ReportDesigner.MmToPixels(HeightMM, dpiY);
 
             RectangleF rect = new RectangleF(x, y, width, height);
-            g.FillRectangle(Brushes.LightBlue, rect);
+            g.FillRectangle(Brushes.WhiteSmoke, rect);
 
             if (selected)
             {
@@ -652,16 +685,22 @@ namespace TimetableDesignerApp
         /// Element location relative to the parent section in millimeters.
         /// </summary>
         public PointF LocationMM { get; set; }
+
+        /// <summary>
+        /// Gets the location of the element on the paper in millimeters.
+        /// </summary>
+        public PointF PaperLocationMM => new PointF(LocationMM.X + ParentSection.LocationMM.X, LocationMM.Y + ParentSection.LocationMM.Y);
         public float WidthMM { get; set; }
         public float HeightMM { get; set; }
         public RDElementSection ParentSection { get; set; }
+        protected static readonly Pen selectedElementPen = new Pen(Color.Black, 2);
 
         public RDElement(RDElementSection parentSection)
         {
             ParentSection = parentSection;
         }
 
-        public abstract void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY);
+        public abstract void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY, bool selected);
     }
 
     public class RDTextElement : RDElement
@@ -680,14 +719,22 @@ namespace TimetableDesignerApp
             LocationMM = new PointF(0,0);
         }
 
-        public override void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY)
+        public override void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY, bool selected)
         {
             float x = offsetX + ReportDesigner.MmToPixels(LocationMM.X, dpiX) + ReportDesigner.MmToPixels(ParentSection.LocationMM.X, dpiX);
             float y = offsetY + ReportDesigner.MmToPixels(LocationMM.Y, dpiY) + ReportDesigner.MmToPixels(ParentSection.LocationMM.Y, dpiX);
+            float width = ReportDesigner.MmToPixels(WidthMM, dpiX);
+            float height = ReportDesigner.MmToPixels(HeightMM, dpiY);
+            RectangleF rect = new RectangleF(x, y, width, height);
 
             using (Brush brush = new SolidBrush(TextColor))
             {
                 g.DrawString(Text, Font, brush, x, y);
+            }
+
+            if (selected)
+            {
+                g.DrawRectangle(selectedElementPen, rect.X, rect.Y, rect.Width, rect.Height);
             }
         }
     }
