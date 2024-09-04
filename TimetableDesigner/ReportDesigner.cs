@@ -648,6 +648,9 @@ namespace TimetableDesignerApp
 
     public abstract class RDElement
     {
+        /// <summary>
+        /// Element location relative to the parent section in millimeters.
+        /// </summary>
         public PointF LocationMM { get; set; }
         public float WidthMM { get; set; }
         public float HeightMM { get; set; }
@@ -674,13 +677,13 @@ namespace TimetableDesignerApp
             TextColor = textColor;
             WidthMM = 50; // Default width
             HeightMM = 10; // Default height
-            LocationMM = parentSection.LocationMM;
+            LocationMM = new PointF(0,0);
         }
 
         public override void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY)
         {
-            float x = offsetX + ReportDesigner.MmToPixels(LocationMM.X, dpiX);
-            float y = offsetY + ReportDesigner.MmToPixels(LocationMM.Y, dpiY);
+            float x = offsetX + ReportDesigner.MmToPixels(LocationMM.X, dpiX) + ReportDesigner.MmToPixels(ParentSection.LocationMM.X, dpiX);
+            float y = offsetY + ReportDesigner.MmToPixels(LocationMM.Y, dpiY) + ReportDesigner.MmToPixels(ParentSection.LocationMM.Y, dpiX);
 
             using (Brush brush = new SolidBrush(TextColor))
             {
