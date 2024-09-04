@@ -13,9 +13,9 @@ using System.Windows.Forms;
 
 namespace TimetableDesignerApp
 {
-    public partial class FormMain : Form
+    public partial class FormTimetableDesigner : Form
     {
-        public FormMain()
+        public FormTimetableDesigner()
         {
             InitializeComponent();
         }
