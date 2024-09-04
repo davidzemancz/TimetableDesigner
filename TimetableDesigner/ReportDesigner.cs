@@ -171,18 +171,11 @@ namespace TimetableDesignerApp
             for (int i = 0; i < sections.Count; i++)
             {
                 var section = sections[i];
-                if (i == 0)
-                {
-                    // Only the first section respects the top margin
-                    section.LocationMM = new PointF(paperMargin.Left, yOffsetMm);
-                }
-                else
-                {
-                    // Subsequent sections have no top margin
-                    section.LocationMM = new PointF(paperMargin.Left, yOffsetMm);
-                }
-                section.WidthMM = paperWidthMm - paperMargin.Left - paperMargin.Right;
-                yOffsetMm += section.HeightMM;
+                float sectionX = paperMargin.Left + section.MarginMM.Left;
+                float sectionY = yOffsetMm + section.MarginMM.Top;
+                section.LocationMM = new PointF(sectionX, sectionY);
+                section.WidthMM = paperWidthMm - paperMargin.Left - paperMargin.Right - section.MarginMM.Left - section.MarginMM.Right;
+                yOffsetMm = sectionY + section.HeightMM + section.MarginMM.Bottom;
                 if (section.Resizable) yOffsetMm += RESIZE_HANDLE_HEIGHT_MM;
             }
             paperHeightMm = Math.Max(A4_HEIGHT_MM, yOffsetMm + paperMargin.Bottom);
@@ -305,11 +298,18 @@ namespace TimetableDesignerApp
                 section.Draw(g, x, topMarginPixels, dpiX, dpiY);
                 if (section.Resizable)
                 {
-                    float resizeHandleY = topMarginPixels + MmToPixels(section.LocationMM.Y + section.HeightMM, dpiY);
-                    float resizeHandleHeight = MmToPixels(RESIZE_HANDLE_HEIGHT_MM, dpiY);
-                    g.FillRectangle(Brushes.Gray, x + MmToPixels(section.LocationMM.X, dpiX), resizeHandleY, MmToPixels(section.WidthMM, dpiX), resizeHandleHeight);
+                    DrawSectionResizeHandle(g, x, topMarginPixels, section);
                 }
             }
+        }
+
+        private void DrawSectionResizeHandle(Graphics g, float x, float topMarginPixels, ReportSection section)
+        {
+            float resizeHandleY = topMarginPixels + MmToPixels(section.LocationMM.Y + section.HeightMM, dpiY);
+            float resizeHandleHeight = MmToPixels(RESIZE_HANDLE_HEIGHT_MM, dpiY);
+            float resizeHandleX = x + MmToPixels(section.LocationMM.X, dpiX);
+            float resizeHandleWidth = MmToPixels(section.WidthMM, dpiX);
+            g.FillRectangle(Brushes.Gray, resizeHandleX, resizeHandleY, resizeHandleWidth, resizeHandleHeight);
         }
 
         #endregion
@@ -464,6 +464,7 @@ namespace TimetableDesignerApp
         public float WidthMM { get; set; }
         public float HeightMM { get; set; }
         public virtual bool Resizable { get; set; }
+        public virtual Padding MarginMM { get; set; } = new Padding(0);
 
         public abstract void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY);
     }
@@ -471,6 +472,8 @@ namespace TimetableDesignerApp
     public class GeneralSection : ReportSection
     {
         public override bool Resizable { get; set; } = true;
+        public override Padding MarginMM { get; set; } = new Padding(2);
+
         public GeneralSection()
         {
             HeightMM = 100; // Default height
@@ -492,6 +495,8 @@ namespace TimetableDesignerApp
     public class TableSection : ReportSection
     {
         public override bool Resizable { get; set; } = false;
+        public override Padding MarginMM { get; set; } = new Padding(0);
+
         public TableSection()
         {
             HeightMM = 20; // Default height in mm
