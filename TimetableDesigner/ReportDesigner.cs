@@ -41,7 +41,7 @@ namespace TimetableDesignerApp
 
         #region Fields
 
-        private List<ReportSection> sections;
+        private List<RDSection> sections = new List<RDSection>();
         private ToolStrip toolStrip;
         private PaperSize paperSize;
         private float paperWidthMm;
@@ -49,10 +49,11 @@ namespace TimetableDesignerApp
         private float dpiX;
         private float dpiY;
         private float zoomFactor = 1.0f;
-        private ReportSection selectedSection;
+        private RDSection selectedSection;
         private float resizeStartY;
         private bool isOverResizeHandle;
         private Padding paperMargin = new Padding(10);
+        private List<RDElement> elements = new List<RDElement>();
 
         #endregion
 
@@ -108,7 +109,6 @@ namespace TimetableDesignerApp
         /// </summary>
         public ReportDesigner()
         {
-            sections = new List<ReportSection>();
             InitializeComponent();
             PaperSize = PaperSize.A4;
             UpdateDpi();
@@ -200,10 +200,20 @@ namespace TimetableDesignerApp
         /// Adds a new section to the report.
         /// </summary>
         /// <param name="section">The section to add.</param>
-        private void AddSection(ReportSection section)
+        private void AddSection(RDSection section)
         {
             sections.Add(section);
             UpdateSectionPositions();
+            Invalidate();
+        }
+
+        #endregion
+
+        #region Elements
+
+        private void AddElement(RDElement element)
+        {
+            elements.Add(element);
             Invalidate();
         }
 
@@ -228,6 +238,7 @@ namespace TimetableDesignerApp
             DrawGrid(e.Graphics, x);
             DrawRulers(e.Graphics, x);
             DrawSections(e.Graphics, x);
+            DrawElements(e.Graphics, x);
         }
 
         /// <summary>
@@ -326,13 +337,25 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Draws the resize handle for a section.
         /// </summary>
-        private void DrawSectionResizeHandle(Graphics g, float x, float topMarginPixels, ReportSection section)
+        private void DrawSectionResizeHandle(Graphics g, float x, float topMarginPixels, RDSection section)
         {
             float resizeHandleY = topMarginPixels + MmToPixels(section.LocationMM.Y + section.HeightMM, dpiY);
             float resizeHandleHeight = MmToPixels(RESIZE_HANDLE_HEIGHT_MM, dpiY);
             float resizeHandleX = x + MmToPixels(section.LocationMM.X, dpiX);
             float resizeHandleWidth = MmToPixels(section.WidthMM, dpiX);
             g.FillRectangle(Brushes.Gray, resizeHandleX, resizeHandleY, resizeHandleWidth, resizeHandleHeight);
+        }
+
+        /// <summary>
+        /// Draws all elements
+        /// </summary>
+        private void DrawElements(Graphics g, float x)
+        {
+            float topMarginPixels = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
+            foreach (var element in elements)
+            {
+                element.Draw(g, x, topMarginPixels, dpiX, dpiY);
+            }
         }
 
         #endregion
@@ -360,7 +383,7 @@ namespace TimetableDesignerApp
         /// </summary>
         private void AddGeneralSection_Click(object sender, EventArgs e)
         {
-            AddSection(new GeneralSection());
+            AddSection(new RDElementSection());
         }
 
         /// <summary>
@@ -368,7 +391,7 @@ namespace TimetableDesignerApp
         /// </summary>
         private void AddTableSection_Click(object sender, EventArgs e)
         {
-            AddSection(new TableSection());
+            AddSection(new RDTableSection());
         }
 
         #endregion
@@ -463,7 +486,7 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Gets the section that the mouse is over for resizing, or null if none.
         /// </summary>
-        private ReportSection GetResizingSection(float mouseYMm)
+        private RDSection GetResizingSection(float mouseYMm)
         {
             return sections.FirstOrDefault(section =>
                 section.Resizable &&
@@ -496,7 +519,7 @@ namespace TimetableDesignerApp
     /// <summary>
     /// Abstract base class for report sections.
     /// </summary>
-    public abstract class ReportSection
+    public abstract class RDSection
     {
         public PointF LocationMM { get; set; }
         public float WidthMM { get; set; }
@@ -513,12 +536,12 @@ namespace TimetableDesignerApp
     /// <summary>
     /// Represents a general section in the report.
     /// </summary>
-    public class GeneralSection : ReportSection
+    public class RDElementSection : RDSection
     {
         public override bool Resizable { get; set; } = true;
         public override Padding MarginMM { get; set; } = new Padding(2);
 
-        public GeneralSection()
+        public RDElementSection()
         {
             HeightMM = 100; // Default height
         }
@@ -539,12 +562,12 @@ namespace TimetableDesignerApp
     /// <summary>
     /// Represents a table section in the report.
     /// </summary>
-    public class TableSection : ReportSection
+    public class RDTableSection : RDSection
     {
         public override bool Resizable { get; set; } = false;
         public override Padding MarginMM { get; set; } = new Padding(0);
 
-        public TableSection()
+        public RDTableSection()
         {
             HeightMM = 20; // Default height in mm
         }
@@ -559,6 +582,48 @@ namespace TimetableDesignerApp
             RectangleF rect = new RectangleF(x, y, width, height);
             g.FillRectangle(Brushes.LightGreen, rect);
             g.DrawRectangle(Pens.Green, rect.X, rect.Y, rect.Width, rect.Height);
+        }
+    }
+
+    public abstract class RDElement
+    {
+        public PointF LocationMM { get; set; }
+        public float WidthMM { get; set; }
+        public float HeightMM { get; set; }
+        public RDElementSection ParentSection { get; set; }
+
+        public RDElement(RDElementSection parentSection)
+        {
+            ParentSection = parentSection;
+        }
+
+        public abstract void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY);
+    }
+
+    public class RDTextElement : RDElement
+    {
+        public string Text { get; set; }
+        public Font Font { get; set; }
+        public Color TextColor { get; set; }
+
+        public RDTextElement(RDElementSection parentSection, string text, Font font, Color textColor) : base(parentSection)
+        {
+            Text = text;
+            Font = font;
+            TextColor = textColor;
+            WidthMM = 50; // Default width
+            HeightMM = 10; // Default height
+        }
+
+        public override void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY)
+        {
+            float x = offsetX + ReportDesigner.MmToPixels(LocationMM.X, dpiX);
+            float y = offsetY + ReportDesigner.MmToPixels(LocationMM.Y, dpiY);
+
+            using (Brush brush = new SolidBrush(TextColor))
+            {
+                g.DrawString(Text, Font, brush, x, y);
+            }
         }
     }
 }
