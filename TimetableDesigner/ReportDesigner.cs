@@ -23,7 +23,12 @@ namespace TimetableDesignerApp
         private const float A5_HEIGHT_MM = 210f;
         private const float GRID_SIZE_MM = 10f;
         private const float TOP_MARGIN_MM = 10f;
-        private const int RESIZE_HANDLE_HEIGHT_MM = 3;
+        public const float LEFT_MARGIN_MM = 10f;
+        public const float RIGHT_MARGIN_MM = 10f;
+        private const int RESIZE_HANDLE_HEIGHT_MM = 1;
+        private const float RULER_WIDTH_MM = 15f;
+        private const float RULER_TICK_SIZE_MM = 3f;
+        private const float RULER_FONT_SIZE_PT = 7f;
 
         #endregion
 
@@ -153,7 +158,7 @@ namespace TimetableDesignerApp
             foreach (var section in sections)
             {
                 section.LocationMM = new PointF(TOP_MARGIN_MM, yOffsetMm);
-                section.WidthMM = paperWidthMm - 2 * TOP_MARGIN_MM;
+                section.WidthMM = paperWidthMm - LEFT_MARGIN_MM - RIGHT_MARGIN_MM;
                 yOffsetMm += section.Height + TOP_MARGIN_MM;
             }
             paperHeightMm = yOffsetMm;
