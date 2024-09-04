@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace TimetableDesignerApp
 {
+    /// <summary>
+    /// Enumeration of supported paper sizes.
+    /// </summary>
     public enum PaperSize
     {
         A4,
@@ -12,10 +16,15 @@ namespace TimetableDesignerApp
         A5,
         A5Landscape
     }
+
+    /// <summary>
+    /// Main class for designing reports. Inherits from Panel for UI integration.
+    /// </summary>
     public class ReportDesigner : Panel
     {
         #region Constants
 
+        // Conversion and measurement constants
         private const float MM_PER_INCH = 25.4f;
         private const float A4_WIDTH_MM = 210f;
         private const float A4_HEIGHT_MM = 297f;
@@ -54,7 +63,7 @@ namespace TimetableDesignerApp
         /// </summary>
         public PaperSize PaperSize
         {
-            get { return paperSize; }
+            get => paperSize;
             set
             {
                 paperSize = value;
@@ -68,7 +77,7 @@ namespace TimetableDesignerApp
         /// </summary>
         public float ZoomFactor
         {
-            get { return zoomFactor; }
+            get => zoomFactor;
             set
             {
                 zoomFactor = Math.Max(0.1f, Math.Min(value, 5.0f));
@@ -81,7 +90,7 @@ namespace TimetableDesignerApp
         /// </summary>
         public Padding PaperMargin
         {
-            get { return paperMargin; }
+            get => paperMargin;
             set
             {
                 paperMargin = value;
@@ -94,6 +103,9 @@ namespace TimetableDesignerApp
 
         #region Constructor
 
+        /// <summary>
+        /// Initializes a new instance of the ReportDesigner class.
+        /// </summary>
         public ReportDesigner()
         {
             sections = new List<ReportSection>();
@@ -107,21 +119,27 @@ namespace TimetableDesignerApp
 
         #region Initialization
 
+        /// <summary>
+        /// Initializes the ReportDesigner components.
+        /// </summary>
         private void InitializeComponent()
         {
-            this.BorderStyle = BorderStyle.FixedSingle;
+            BorderStyle = BorderStyle.FixedSingle;
 
             toolStrip = new ToolStrip();
             toolStrip.Items.Add("Add General Section", null, AddGeneralSection_Click);
             toolStrip.Items.Add("Add Table Section", null, AddTableSection_Click);
             toolStrip.Items.Add("Zoom In", null, ZoomIn_Click);
             toolStrip.Items.Add("Zoom Out", null, ZoomOut_Click);
-            this.Controls.Add(toolStrip);
+            Controls.Add(toolStrip);
         }
 
+        /// <summary>
+        /// Updates the DPI values used for drawing.
+        /// </summary>
         private void UpdateDpi()
         {
-            using (Graphics g = this.CreateGraphics())
+            using (Graphics g = CreateGraphics())
             {
                 dpiX = g.DpiX;
                 dpiY = g.DpiY;
@@ -168,14 +186,11 @@ namespace TimetableDesignerApp
         private void UpdateSectionPositions()
         {
             float yOffsetMm = paperMargin.Top;
-            for (int i = 0; i < sections.Count; i++)
+            foreach (var section in sections)
             {
-                var section = sections[i];
-                float sectionX = paperMargin.Left + section.MarginMM.Left;
-                float sectionY = yOffsetMm + section.MarginMM.Top;
-                section.LocationMM = new PointF(sectionX, sectionY);
+                section.LocationMM = new PointF(paperMargin.Left + section.MarginMM.Left, yOffsetMm + section.MarginMM.Top);
                 section.WidthMM = paperWidthMm - paperMargin.Left - paperMargin.Right - section.MarginMM.Left - section.MarginMM.Right;
-                yOffsetMm = sectionY + section.HeightMM + section.MarginMM.Bottom;
+                yOffsetMm = section.LocationMM.Y + section.HeightMM + section.MarginMM.Bottom;
                 if (section.Resizable) yOffsetMm += RESIZE_HANDLE_HEIGHT_MM;
             }
             paperHeightMm = Math.Max(A4_HEIGHT_MM, yOffsetMm + paperMargin.Bottom);
@@ -196,16 +211,18 @@ namespace TimetableDesignerApp
 
         #region Drawing
 
+        /// <summary>
+        /// Handles the paint event for the ReportDesigner.
+        /// </summary>
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
 
-            e.Graphics.Clear(this.BackColor);
+            e.Graphics.Clear(BackColor);
             e.Graphics.ScaleTransform(zoomFactor, zoomFactor);
 
             float paperWidthPixels = MmToPixels(paperWidthMm, dpiX);
-            float x = (this.ClientSize.Width / zoomFactor - paperWidthPixels) / 2;
-            x = Math.Max(0, x);
+            float x = Math.Max(0, (ClientSize.Width / zoomFactor - paperWidthPixels) / 2);
 
             DrawPaper(e.Graphics, x);
             DrawGrid(e.Graphics, x);
@@ -246,6 +263,9 @@ namespace TimetableDesignerApp
             }
         }
 
+        /// <summary>
+        /// Draws the rulers on the graphics object.
+        /// </summary>
         private void DrawRulers(Graphics g, float x)
         {
             float paperWidthPixels = MmToPixels(paperWidthMm, dpiX);
@@ -255,7 +275,7 @@ namespace TimetableDesignerApp
 
             using (Font rulerFont = new Font(Font.FontFamily, RULER_FONT_SIZE_PT, FontStyle.Regular))
             {
-                // Vertical ruler
+                // Draw vertical ruler
                 for (int i = 0; i <= paperHeightMm; i += 10)
                 {
                     float tickY = topMarginPixels + MmToPixels(i, dpiY);
@@ -270,7 +290,7 @@ namespace TimetableDesignerApp
                     }
                 }
 
-                // Horizontal ruler
+                // Draw horizontal ruler
                 for (int i = 0; i <= paperWidthMm; i += 10)
                 {
                     float tickX = x + MmToPixels(i, dpiX);
@@ -303,6 +323,9 @@ namespace TimetableDesignerApp
             }
         }
 
+        /// <summary>
+        /// Draws the resize handle for a section.
+        /// </summary>
         private void DrawSectionResizeHandle(Graphics g, float x, float topMarginPixels, ReportSection section)
         {
             float resizeHandleY = topMarginPixels + MmToPixels(section.LocationMM.Y + section.HeightMM, dpiY);
@@ -316,21 +339,33 @@ namespace TimetableDesignerApp
 
         #region Event Handlers
 
+        /// <summary>
+        /// Handles the zoom in button click event.
+        /// </summary>
         private void ZoomIn_Click(object sender, EventArgs e)
         {
             ZoomFactor *= 1.2f;
         }
 
+        /// <summary>
+        /// Handles the zoom out button click event.
+        /// </summary>
         private void ZoomOut_Click(object sender, EventArgs e)
         {
             ZoomFactor /= 1.2f;
         }
 
+        /// <summary>
+        /// Handles the add general section button click event.
+        /// </summary>
         private void AddGeneralSection_Click(object sender, EventArgs e)
         {
             AddSection(new GeneralSection());
         }
 
+        /// <summary>
+        /// Handles the add table section button click event.
+        /// </summary>
         private void AddTableSection_Click(object sender, EventArgs e)
         {
             AddSection(new TableSection());
@@ -340,6 +375,9 @@ namespace TimetableDesignerApp
 
         #region Mouse Handling
 
+        /// <summary>
+        /// Handles the mouse move event.
+        /// </summary>
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
@@ -356,6 +394,9 @@ namespace TimetableDesignerApp
             }
         }
 
+        /// <summary>
+        /// Handles the mouse down event.
+        /// </summary>
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
@@ -365,10 +406,13 @@ namespace TimetableDesignerApp
             if (resizingSection != null)
             {
                 resizeStartY = mouseYMm;
-                this.Cursor = Cursors.SizeNS;
+                Cursor = Cursors.SizeNS;
             }
         }
 
+        /// <summary>
+        /// Handles the mouse up event.
+        /// </summary>
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
@@ -391,7 +435,7 @@ namespace TimetableDesignerApp
             resizeStartY = mouseYMm;
             UpdateSectionPositions();
             Invalidate();
-            this.Cursor = Cursors.SizeNS;
+            Cursor = Cursors.SizeNS;
         }
 
         /// <summary>
@@ -404,7 +448,7 @@ namespace TimetableDesignerApp
 
             if (isOverResizeHandle != wasOverResizeHandle)
             {
-                this.Cursor = isOverResizeHandle ? Cursors.SizeNS : Cursors.Default;
+                Cursor = isOverResizeHandle ? Cursors.SizeNS : Cursors.Default;
             }
         }
 
@@ -421,18 +465,9 @@ namespace TimetableDesignerApp
         /// </summary>
         private ReportSection GetResizingSection(float mouseYMm)
         {
-            foreach (var section in sections)
-            {
-                if (section.Resizable)
-                {
-                    float resizeHandleYMm = section.LocationMM.Y + section.HeightMM;
-                    if (Math.Abs(mouseYMm - resizeHandleYMm) <= RESIZE_HANDLE_HEIGHT_MM)
-                    {
-                        return section;
-                    }
-                }
-            }
-            return null;
+            return sections.FirstOrDefault(section =>
+                section.Resizable &&
+                Math.Abs(mouseYMm - (section.LocationMM.Y + section.HeightMM)) <= RESIZE_HANDLE_HEIGHT_MM);
         }
 
         #endregion
@@ -458,6 +493,9 @@ namespace TimetableDesignerApp
         #endregion
     }
 
+    /// <summary>
+    /// Abstract base class for report sections.
+    /// </summary>
     public abstract class ReportSection
     {
         public PointF LocationMM { get; set; }
@@ -466,9 +504,15 @@ namespace TimetableDesignerApp
         public virtual bool Resizable { get; set; }
         public virtual Padding MarginMM { get; set; } = new Padding(0);
 
+        /// <summary>
+        /// Draws the section on the graphics object.
+        /// </summary>
         public abstract void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY);
     }
 
+    /// <summary>
+    /// Represents a general section in the report.
+    /// </summary>
     public class GeneralSection : ReportSection
     {
         public override bool Resizable { get; set; } = true;
@@ -492,6 +536,9 @@ namespace TimetableDesignerApp
         }
     }
 
+    /// <summary>
+    /// Represents a table section in the report.
+    /// </summary>
     public class TableSection : ReportSection
     {
         public override bool Resizable { get; set; } = false;
