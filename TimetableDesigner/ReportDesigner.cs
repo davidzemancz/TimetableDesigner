@@ -42,6 +42,7 @@ namespace TimetableDesignerApp
         #region Fields
 
         private List<RDSection> sections = new List<RDSection>();
+        private RDSection selectedSection;
         private ToolStrip toolStrip;
         private PaperSize paperSize;
         private float paperWidthMm;
@@ -58,6 +59,20 @@ namespace TimetableDesignerApp
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// Gets or sets the currently selected section.
+        /// </summary>
+        public RDSection SelectedSection
+        {
+            get => selectedSection;
+            set
+            {
+                selectedSection = value;
+                Invalidate(); // Redraw to show the selection
+            }
+        }
+
 
         /// <summary>
         /// Gets or sets the paper size of the report.
@@ -129,10 +144,13 @@ namespace TimetableDesignerApp
             toolStrip = new ToolStrip();
             toolStrip.Items.Add("Add General Section", null, AddGeneralSection_Click);
             toolStrip.Items.Add("Add Table Section", null, AddTableSection_Click);
+            toolStrip.Items.Add("Add Element", null, AddElement_Click);
             toolStrip.Items.Add("Zoom In", null, ZoomIn_Click);
             toolStrip.Items.Add("Zoom Out", null, ZoomOut_Click);
             Controls.Add(toolStrip);
         }
+
+        
 
         /// <summary>
         /// Updates the DPI values used for drawing.
@@ -204,7 +222,7 @@ namespace TimetableDesignerApp
         {
             sections.Add(section);
             UpdateSectionPositions();
-            Invalidate();
+            SelectedSection = section;
         }
 
         #endregion
@@ -326,7 +344,8 @@ namespace TimetableDesignerApp
             float topMarginPixels = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
             foreach (var section in sections)
             {
-                section.Draw(g, x, topMarginPixels, dpiX, dpiY);
+                bool selected = section == selectedSection;
+                section.Draw(g, x, topMarginPixels, dpiX, dpiY, selected);
                 if (section.Resizable)
                 {
                     DrawSectionResizeHandle(g, x, topMarginPixels, section);
@@ -394,6 +413,14 @@ namespace TimetableDesignerApp
             AddSection(new RDTableSection());
         }
 
+        private void AddElement_Click(object sender, EventArgs e)
+        {
+            if(SelectedSection is RDElementSection elementSection)
+            {
+                AddElement(new RDTextElement(elementSection, "Hello World", new Font("Arial", 12), Color.Black));
+            }
+        }
+
         #endregion
 
         #region Mouse Handling
@@ -424,12 +451,25 @@ namespace TimetableDesignerApp
         {
             base.OnMouseDown(e);
 
-            float mouseYMm = PixelsToMm(e.Y / zoomFactor - MmToPixels(PAPER_TOP_MARGIN_MM, dpiY), dpiY);
+            // Calculate paper position
+            float paperWidthPixels = MmToPixels(paperWidthMm, dpiX);
+            float paperX = Math.Max(0, (ClientSize.Width / zoomFactor - paperWidthPixels) / 2);
+            float paperTopMarginPixels = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
+
+            // Adjust mouse coordinates relative to paper
+            float mouseXMm = PixelsToMm((e.X / zoomFactor) - paperX, dpiX);
+            float mouseYMm = PixelsToMm((e.Y / zoomFactor) - paperTopMarginPixels, dpiY);
+
             resizingSection = GetResizingSection(mouseYMm);
             if (resizingSection != null)
             {
+                SelectedSection = resizingSection;
                 resizeStartY = mouseYMm;
                 Cursor = Cursors.SizeNS;
+            }
+            else
+            {
+                SelectedSection = GetSectionAtPoint(mouseXMm, mouseYMm);
             }
         }
 
@@ -446,6 +486,18 @@ namespace TimetableDesignerApp
                 float mouseYMm = PixelsToMm(e.Y / zoomFactor - MmToPixels(PAPER_TOP_MARGIN_MM, dpiY), dpiY);
                 UpdateCursorForResizeHandle(mouseYMm);
             }
+        }
+
+        /// <summary>
+        /// Gets the section at the specified point.
+        /// </summary>
+        private RDSection GetSectionAtPoint(float xMm, float yMm)
+        {
+            return sections.FirstOrDefault(section =>
+                xMm >= section.LocationMM.X &&
+                xMm <= section.LocationMM.X + section.WidthMM &&
+                yMm >= section.LocationMM.Y &&
+                yMm <= section.LocationMM.Y + section.HeightMM);
         }
 
         /// <summary>
@@ -526,11 +578,12 @@ namespace TimetableDesignerApp
         public float HeightMM { get; set; }
         public virtual bool Resizable { get; set; }
         public virtual Padding MarginMM { get; set; } = new Padding(0);
+        protected static readonly Pen selectedSectionPen = new Pen(Color.Black, 2);
 
         /// <summary>
         /// Draws the section on the graphics object.
         /// </summary>
-        public abstract void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY);
+        public abstract void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY, bool selected);
     }
 
     /// <summary>
@@ -546,7 +599,7 @@ namespace TimetableDesignerApp
             HeightMM = 100; // Default height
         }
 
-        public override void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY)
+        public override void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY, bool selected)
         {
             float x = offsetX + ReportDesigner.MmToPixels(LocationMM.X, dpiX);
             float y = offsetY + ReportDesigner.MmToPixels(LocationMM.Y, dpiY);
@@ -555,7 +608,11 @@ namespace TimetableDesignerApp
 
             RectangleF rect = new RectangleF(x, y, width, height);
             g.FillRectangle(Brushes.LightBlue, rect);
-            g.DrawRectangle(Pens.Blue, rect.X, rect.Y, rect.Width, rect.Height);
+
+            if (selected)
+            {
+                g.DrawRectangle(selectedSectionPen, rect.X, rect.Y, rect.Width, rect.Height);
+            }
         }
     }
 
@@ -572,7 +629,7 @@ namespace TimetableDesignerApp
             HeightMM = 20; // Default height in mm
         }
 
-        public override void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY)
+        public override void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY, bool selected)
         {
             float x = offsetX + ReportDesigner.MmToPixels(LocationMM.X, dpiX);
             float y = offsetY + ReportDesigner.MmToPixels(LocationMM.Y, dpiY);
@@ -581,7 +638,11 @@ namespace TimetableDesignerApp
 
             RectangleF rect = new RectangleF(x, y, width, height);
             g.FillRectangle(Brushes.LightGreen, rect);
-            g.DrawRectangle(Pens.Green, rect.X, rect.Y, rect.Width, rect.Height);
+
+            if (selected)
+            {
+                g.DrawRectangle(selectedSectionPen, rect.X, rect.Y, rect.Width, rect.Height);
+            }
         }
     }
 
@@ -613,6 +674,7 @@ namespace TimetableDesignerApp
             TextColor = textColor;
             WidthMM = 50; // Default width
             HeightMM = 10; // Default height
+            LocationMM = parentSection.LocationMM;
         }
 
         public override void Draw(Graphics g, float offsetX, float offsetY, float dpiX, float dpiY)
