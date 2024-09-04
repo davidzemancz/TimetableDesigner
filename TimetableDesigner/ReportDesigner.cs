@@ -49,7 +49,7 @@ namespace TimetableDesignerApp
         private float dpiX;
         private float dpiY;
         private float zoomFactor = 1.0f;
-        private ReportSection resizingSection;
+        private ReportSection selectedSection;
         private float resizeStartY;
         private bool isOverResizeHandle;
         private Padding paperMargin = new Padding(10);
@@ -384,7 +384,7 @@ namespace TimetableDesignerApp
 
             float mouseYMm = PixelsToMm(e.Y / zoomFactor - MmToPixels(PAPER_TOP_MARGIN_MM, dpiY), dpiY);
 
-            if (resizingSection != null)
+            if (selectedSection != null)
             {
                 ResizeSection(mouseYMm);
             }
@@ -402,8 +402,8 @@ namespace TimetableDesignerApp
             base.OnMouseDown(e);
 
             float mouseYMm = PixelsToMm(e.Y / zoomFactor - MmToPixels(PAPER_TOP_MARGIN_MM, dpiY), dpiY);
-            resizingSection = GetResizingSection(mouseYMm);
-            if (resizingSection != null)
+            selectedSection = GetResizingSection(mouseYMm);
+            if (selectedSection != null)
             {
                 resizeStartY = mouseYMm;
                 Cursor = Cursors.SizeNS;
@@ -417,9 +417,9 @@ namespace TimetableDesignerApp
         {
             base.OnMouseUp(e);
 
-            if (resizingSection != null)
+            if (selectedSection != null)
             {
-                resizingSection = null;
+                selectedSection = null;
                 float mouseYMm = PixelsToMm(e.Y / zoomFactor - MmToPixels(PAPER_TOP_MARGIN_MM, dpiY), dpiY);
                 UpdateCursorForResizeHandle(mouseYMm);
             }
@@ -431,7 +431,7 @@ namespace TimetableDesignerApp
         private void ResizeSection(float mouseYMm)
         {
             float deltaYMm = mouseYMm - resizeStartY;
-            resizingSection.HeightMM = Math.Max(20, resizingSection.HeightMM + deltaYMm);
+            selectedSection.HeightMM = Math.Max(20, selectedSection.HeightMM + deltaYMm);
             resizeStartY = mouseYMm;
             UpdateSectionPositions();
             Invalidate();
