@@ -56,6 +56,7 @@ namespace TimetableDesignerApp
         private bool isOverResizeHandle;
         private Padding paperMargin = new Padding(10);
         private List<RDElement> elements = new List<RDElement>();
+        private bool showGrid;
 
         #endregion
 
@@ -130,6 +131,19 @@ namespace TimetableDesignerApp
             }
         }
 
+        public bool ShowGrid
+        {
+            get 
+            { 
+                return showGrid; 
+            }
+            set
+            {
+                showGrid = value;
+                Invalidate();
+            }
+        }
+
         #endregion
 
         #region Constructor
@@ -162,10 +176,12 @@ namespace TimetableDesignerApp
             toolStrip.Items.Add("Add Element", null, AddElement_Click);
             toolStrip.Items.Add("Zoom In", null, ZoomIn_Click);
             toolStrip.Items.Add("Zoom Out", null, ZoomOut_Click);
+            toolStrip.Items.Add("Show grid", null, ShowGrid_Click);
             Controls.Add(toolStrip);
         }
 
-        
+       
+
 
         /// <summary>
         /// Updates the DPI values used for drawing.
@@ -293,6 +309,8 @@ namespace TimetableDesignerApp
         /// </summary>
         private void DrawGrid(Graphics g, float x)
         {
+            if(!showGrid) return;
+
             float gridSizePixels = MmToPixels(GRID_SIZE_MM, dpiX);
             float paperWidthPixels = MmToPixels(paperWidthMm, dpiX);
             float paperHeightPixels = MmToPixels(paperHeightMm, dpiY);
@@ -397,6 +415,11 @@ namespace TimetableDesignerApp
         #endregion
 
         #region Event Handlers
+
+        private void ShowGrid_Click(object sender, EventArgs e)
+        {
+            ShowGrid = !ShowGrid;
+        }
 
         /// <summary>
         /// Handles the zoom in button click event.
@@ -640,7 +663,7 @@ namespace TimetableDesignerApp
             float height = ReportDesigner.MmToPixels(HeightMM, dpiY);
 
             RectangleF rect = new RectangleF(x, y, width, height);
-            g.FillRectangle(Brushes.WhiteSmoke, rect);
+            g.DrawRectangle(Pens.Black, rect.X, rect.Y, rect.Width, rect.Height);
 
             if (selected)
             {
