@@ -392,11 +392,13 @@ namespace TimetableDesignerApp
         /// </summary>
         private void DrawSectionResizeHandle(Graphics g, float x, float topMarginPixels, RDSection section)
         {
-            float resizeHandleY = topMarginPixels + MmToPixels(section.LocationMM.Y + section.HeightMM, dpiY);
-            float resizeHandleHeight = MmToPixels(RESIZE_HANDLE_HEIGHT_MM, dpiY);
-            float resizeHandleX = x + MmToPixels(section.LocationMM.X, dpiX);
-            float resizeHandleWidth = MmToPixels(section.WidthMM, dpiX);
-            g.FillRectangle(Brushes.Gray, resizeHandleX, resizeHandleY, resizeHandleWidth, resizeHandleHeight);
+            //float resizeHandleY = topMarginPixels + MmToPixels(section.LocationMM.Y + section.HeightMM, dpiY);
+            //float resizeHandleHeight = MmToPixels(RESIZE_HANDLE_HEIGHT_MM, dpiY);
+            //float resizeHandleX = x + MmToPixels(section.LocationMM.X, dpiX);
+            //float resizeHandleWidth = MmToPixels(section.WidthMM, dpiX);
+            //g.FillRectangle(Brushes.CornflowerBlue, resizeHandleX, resizeHandleY, resizeHandleWidth, resizeHandleHeight);
+
+            // pass...
         }
 
         /// <summary>
@@ -634,7 +636,7 @@ namespace TimetableDesignerApp
         public float HeightMM { get; set; }
         public virtual bool Resizable { get; set; }
         public virtual Padding MarginMM { get; set; } = new Padding(0);
-        protected static readonly Pen selectedSectionPen = new Pen(Color.Black, 2);
+        protected static readonly Pen selectedSectionPen = new Pen(Color.CornflowerBlue, 2);
 
         /// <summary>
         /// Draws the section on the graphics object.
@@ -663,7 +665,7 @@ namespace TimetableDesignerApp
             float height = ReportDesigner.MmToPixels(HeightMM, dpiY);
 
             RectangleF rect = new RectangleF(x, y, width, height);
-            g.DrawRectangle(Pens.Black, rect.X, rect.Y, rect.Width, rect.Height);
+            g.DrawRectangle(Pens.Gray, rect.X, rect.Y, rect.Width, rect.Height);
 
             if (selected)
             {
@@ -716,7 +718,7 @@ namespace TimetableDesignerApp
         public float WidthMM { get; set; }
         public float HeightMM { get; set; }
         public RDElementSection ParentSection { get; set; }
-        protected static readonly Pen selectedElementPen = new Pen(Color.Black, 2);
+        protected static readonly Pen selectedElementPen = new Pen(Color.CornflowerBlue, 2);
 
         public RDElement(RDElementSection parentSection)
         {
