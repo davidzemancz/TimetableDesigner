@@ -51,12 +51,15 @@ namespace TimetableDesignerApp
         private float dpiX;
         private float dpiY;
         private float zoomFactor = 1.0f;
-        private RDSection resizingSection;
+        private bool isResizingSection;
         private float resizeStartY;
         private bool isOverResizeHandle;
         private Padding paperMargin = new Padding(10);
         private List<RDElement> elements = new List<RDElement>();
         private bool showGrid;
+        private RDElement movingElement;
+        private PointF moveStartOffset;
+        private bool isMovingElement;
 
         #endregion
 
@@ -474,11 +477,20 @@ namespace TimetableDesignerApp
         {
             base.OnMouseMove(e);
 
-            float mouseYMm = PixelsToMm(e.Y / zoomFactor - MmToPixels(PAPER_TOP_MARGIN_MM, dpiY), dpiY);
+            float paperWidthPixels = MmToPixels(paperWidthMm, dpiX);
+            float paperX = Math.Max(0, (ClientSize.Width / zoomFactor - paperWidthPixels) / 2);
+            float paperTopMarginPixels = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
 
-            if (resizingSection != null)
+            float mouseXMm = PixelsToMm((e.X / zoomFactor) - paperX, dpiX);
+            float mouseYMm = PixelsToMm((e.Y / zoomFactor) - paperTopMarginPixels, dpiY);
+
+            if (isResizingSection && SelectedSection != null)
             {
                 ResizeSection(mouseYMm);
+            }
+            else if (isMovingElement && SelectedElement != null)
+            {
+                MoveElement(mouseXMm, mouseYMm);
             }
             else
             {
@@ -502,21 +514,33 @@ namespace TimetableDesignerApp
             float mouseXMm = PixelsToMm((e.X / zoomFactor) - paperX, dpiX);
             float mouseYMm = PixelsToMm((e.Y / zoomFactor) - paperTopMarginPixels, dpiY);
 
-            // Selected (resizable) section
-            resizingSection = GetResizingSection(mouseYMm);
-            if (resizingSection != null)
+            // Check for resizing section
+            RDSection sectionToResize = GetResizingSection(mouseYMm);
+            if (sectionToResize != null)
             {
-                SelectedSection = resizingSection;
+                isResizingSection = true;
+                SelectedSection = sectionToResize;
                 resizeStartY = mouseYMm;
                 Cursor = Cursors.SizeNS;
-            }
-            else
-            {
-                SelectedSection = GetSectionAtPoint(mouseXMm, mouseYMm);
+                return;
             }
 
-            // Selected element
+            // Check for moving element
             SelectedElement = GetElementAtPoint(mouseXMm, mouseYMm);
+            if (SelectedElement != null && SelectedElement.ParentSection is RDElementSection parentSection)
+            {
+                isMovingElement = true;
+                moveStartOffset = new PointF(
+                      mouseXMm - (SelectedElement.LocationMM.X + parentSection.LocationMM.X),
+                      mouseYMm - (SelectedElement.LocationMM.Y + parentSection.LocationMM.Y)
+                  );
+                Cursor = Cursors.SizeAll;
+                return;
+            }
+
+            // If not resizing or moving, just select the section
+            SelectedSection = GetSectionAtPoint(mouseXMm, mouseYMm);
+            isMovingElement = false;
         }
 
         /// <summary>
@@ -526,11 +550,16 @@ namespace TimetableDesignerApp
         {
             base.OnMouseUp(e);
 
-            if (resizingSection != null)
+            if (isResizingSection)
             {
-                resizingSection = null;
-                float mouseYMm = PixelsToMm(e.Y / zoomFactor - MmToPixels(PAPER_TOP_MARGIN_MM, dpiY), dpiY);
-                UpdateCursorForResizeHandle(mouseYMm);
+                isResizingSection = false;
+                Cursor = Cursors.Default;
+            }
+
+            if (isMovingElement)
+            {
+                isMovingElement = false;
+                Cursor = Cursors.Default;
             }
         }
 
@@ -563,12 +592,46 @@ namespace TimetableDesignerApp
         /// </summary>
         private void ResizeSection(float mouseYMm)
         {
-            float deltaYMm = mouseYMm - resizeStartY;
-            resizingSection.HeightMM = Math.Max(20, resizingSection.HeightMM + deltaYMm);
-            resizeStartY = mouseYMm;
-            UpdateSectionPositions();
-            Invalidate();
-            Cursor = Cursors.SizeNS;
+            if (SelectedSection != null && SelectedSection.Resizable)
+            {
+                float deltaYMm = mouseYMm - resizeStartY;
+                float newHeight = SelectedSection.HeightMM + deltaYMm;
+
+                // Calculate the minimum height required to contain all elements
+                float minHeight = GetMinimumSectionHeight(SelectedSection);
+
+                // Ensure the new height is not smaller than the minimum required height
+                newHeight = Math.Max(newHeight, minHeight);
+
+                // Apply the new height
+                SelectedSection.HeightMM = newHeight;
+                resizeStartY = mouseYMm;
+                UpdateSectionPositions();
+                Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// Returns the minumum height of the section
+        /// </summary>
+        private float GetMinimumSectionHeight(RDSection section)
+        {
+            if (section is RDElementSection elementSection)
+            {
+                // Find the element with the lowest bottom edge
+                float maxBottomEdge = elements
+                    .Where(e => e.ParentSection == elementSection)
+                    .Select(e => e.LocationMM.Y + e.HeightMM)
+                    .DefaultIfEmpty(0)
+                    .Max();
+
+                return maxBottomEdge;
+            }
+            else
+            {
+                // For non-element sections (like table sections), return a minimum height (e.g., 20mm)
+                return 20;
+            }
         }
 
         /// <summary>
@@ -601,6 +664,22 @@ namespace TimetableDesignerApp
             return sections.FirstOrDefault(section =>
                 section.Resizable &&
                 Math.Abs(mouseYMm - (section.LocationMM.Y + section.HeightMM)) <= RESIZE_HANDLE_HEIGHT_MM);
+        }
+
+        private void MoveElement(float mouseXMm, float mouseYMm)
+        {
+            if (SelectedElement?.ParentSection is RDElementSection parentSection)
+            {
+                float newX = mouseXMm - moveStartOffset.X - parentSection.LocationMM.X;
+                float newY = mouseYMm - moveStartOffset.Y - parentSection.LocationMM.Y;
+
+                // Constrain the element within the parent section
+                newX = Math.Max(0, Math.Min(newX, parentSection.WidthMM - SelectedElement.WidthMM));
+                newY = Math.Max(0, Math.Min(newY, parentSection.HeightMM - SelectedElement.HeightMM));
+
+                SelectedElement.LocationMM = new PointF(newX, newY);
+                Invalidate();
+            }
         }
 
         #endregion
