@@ -126,9 +126,7 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ReportDesigner.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Include="ReportDesigner.cs" />
     <Compile Include="TimetableDesigner.cs">
       <SubType>Component</SubType>
     </Compile>
