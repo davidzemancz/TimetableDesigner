@@ -29,31 +29,17 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormReportDesigner));
-            this.reportDesigner1 = new TimetableDesignerApp.ReportDesigner();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.addElemSection = new System.Windows.Forms.ToolStripButton();
             this.addTable = new System.Windows.Forms.ToolStripButton();
             this.addElem = new System.Windows.Forms.ToolStripButton();
             this.zoomIn = new System.Windows.Forms.ToolStripButton();
             this.zoomOut = new System.Windows.Forms.ToolStripButton();
+            this.tsCbxPaper = new System.Windows.Forms.ToolStripComboBox();
+            this.reportDesigner1 = new TimetableDesignerApp.ReportDesigner();
+            this.tsbShowGrid = new System.Windows.Forms.ToolStripButton();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
-            // 
-            // reportDesigner1
-            // 
-            this.reportDesigner1.AutoScroll = true;
-            this.reportDesigner1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.reportDesigner1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.reportDesigner1.Location = new System.Drawing.Point(0, 25);
-            this.reportDesigner1.Name = "reportDesigner1";
-            this.reportDesigner1.PaperMargin = new System.Windows.Forms.Padding(10);
-            this.reportDesigner1.PaperSize = TimetableDesignerApp.PaperSize.A4;
-            this.reportDesigner1.SelectedElement = null;
-            this.reportDesigner1.SelectedSection = null;
-            this.reportDesigner1.ShowGrid = false;
-            this.reportDesigner1.Size = new System.Drawing.Size(1500, 748);
-            this.reportDesigner1.TabIndex = 0;
-            this.reportDesigner1.ZoomFactor = 1F;
             // 
             // toolStrip1
             // 
@@ -62,7 +48,9 @@
             this.addTable,
             this.addElem,
             this.zoomIn,
-            this.zoomOut});
+            this.zoomOut,
+            this.tsbShowGrid,
+            this.tsCbxPaper});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Size = new System.Drawing.Size(1500, 25);
@@ -114,6 +102,38 @@
             this.zoomOut.Size = new System.Drawing.Size(64, 22);
             this.zoomOut.Text = "Zoom out";
             // 
+            // tsCbxPaper
+            // 
+            this.tsCbxPaper.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.tsCbxPaper.Name = "tsCbxPaper";
+            this.tsCbxPaper.Size = new System.Drawing.Size(121, 25);
+            this.tsCbxPaper.SelectedIndexChanged += new System.EventHandler(this.tsCbxPaper_SelectedIndexChanged);
+            // 
+            // reportDesigner1
+            // 
+            this.reportDesigner1.AutoScroll = true;
+            this.reportDesigner1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.reportDesigner1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.reportDesigner1.Location = new System.Drawing.Point(0, 25);
+            this.reportDesigner1.Name = "reportDesigner1";
+            this.reportDesigner1.PaperMargin = new System.Windows.Forms.Padding(10);
+            this.reportDesigner1.PaperSize = TimetableDesignerApp.PaperSize.A4;
+            this.reportDesigner1.SelectedElement = null;
+            this.reportDesigner1.SelectedSection = null;
+            this.reportDesigner1.ShowGrid = false;
+            this.reportDesigner1.Size = new System.Drawing.Size(1500, 748);
+            this.reportDesigner1.TabIndex = 0;
+            this.reportDesigner1.ZoomFactor = 1F;
+            // 
+            // tsbShowGrid
+            // 
+            this.tsbShowGrid.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsbShowGrid.Image = ((System.Drawing.Image)(resources.GetObject("tsbShowGrid.Image")));
+            this.tsbShowGrid.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsbShowGrid.Name = "tsbShowGrid";
+            this.tsbShowGrid.Size = new System.Drawing.Size(64, 22);
+            this.tsbShowGrid.Text = "Show grid";
+            // 
             // FormReportDesigner
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -123,6 +143,7 @@
             this.Controls.Add(this.toolStrip1);
             this.Name = "FormReportDesigner";
             this.Text = "FormReportDesigner";
+            this.Load += new System.EventHandler(this.FormReportDesigner_Load);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);
@@ -139,5 +160,7 @@
         private System.Windows.Forms.ToolStripButton addElem;
         private System.Windows.Forms.ToolStripButton zoomIn;
         private System.Windows.Forms.ToolStripButton zoomOut;
+        private System.Windows.Forms.ToolStripComboBox tsCbxPaper;
+        private System.Windows.Forms.ToolStripButton tsbShowGrid;
     }
 }

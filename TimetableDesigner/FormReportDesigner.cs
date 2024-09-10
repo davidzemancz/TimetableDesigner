@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Printing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,6 +16,21 @@ namespace TimetableDesignerApp
         public FormReportDesigner()
         {
             InitializeComponent();
+        }
+
+        private void FormReportDesigner_Load(object sender, EventArgs e)
+        {
+            foreach (PaperSize paperSize in Enum.GetValues(typeof(PaperSize)))
+            {
+                tsCbxPaper.Items.Add(paperSize);
+            }
+            tsCbxPaper.SelectedItem = reportDesigner1.PaperSize;
+        }
+
+        private void tsCbxPaper_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var paperSize = (PaperSize)tsCbxPaper.SelectedItem;
+            reportDesigner1.PaperSize = paperSize;
         }
 
         private void toolStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
@@ -39,7 +55,13 @@ namespace TimetableDesignerApp
             {
                 reportDesigner1.ZoomFactor -= 0.1f;
             }
-            
+            else if (e.ClickedItem == tsbShowGrid)
+            {
+                reportDesigner1.ShowGrid = !reportDesigner1.ShowGrid;
+            }
+
         }
+
+       
     }
 }

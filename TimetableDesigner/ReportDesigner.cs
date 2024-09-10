@@ -372,13 +372,13 @@ namespace TimetableDesignerApp
             using (Pen gridPen = new Pen(Color.LightGray, 1))
             {
                 // Draw vertical grid lines
-                for (float gridX = x; gridX <= x + paperWidthPixels; gridX += gridSizePixels)
+                for (float gridX = x + gridSizePixels; gridX <= x + paperWidthPixels; gridX += gridSizePixels)
                 {
                     g.DrawLine(gridPen, gridX, topMarginPixels, gridX, topMarginPixels + paperHeightPixels);
                 }
 
                 // Draw horizontal grid lines
-                for (float gridY = topMarginPixels; gridY <= topMarginPixels + paperHeightPixels; gridY += gridSizePixels)
+                for (float gridY = topMarginPixels + gridSizePixels; gridY <= topMarginPixels + paperHeightPixels; gridY += gridSizePixels)
                 {
                     g.DrawLine(gridPen, x, gridY, x + paperWidthPixels, gridY);
                 }
@@ -849,8 +849,7 @@ namespace TimetableDesignerApp
                     .DefaultIfEmpty(0)
                     .Max();
 
-                // Add a small padding (e.g., 5mm) to ensure elements don't touch the bottom edge
-                return maxBottomEdge + 5;
+                return maxBottomEdge;
             }
             else
             {
@@ -894,7 +893,14 @@ namespace TimetableDesignerApp
                     paperWidthMm = A5_WIDTH_MM;
                     paperHeightMm = A5_HEIGHT_MM;
                     break;
-                // Add other paper sizes as needed
+                case PaperSize.A4Landscape:
+                    paperWidthMm = A4_HEIGHT_MM;
+                    paperHeightMm = A4_WIDTH_MM;
+                    break;
+                case PaperSize.A5Landscape:
+                    paperWidthMm = A5_HEIGHT_MM;
+                    paperHeightMm = A5_WIDTH_MM;
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(paperSize));
             }
