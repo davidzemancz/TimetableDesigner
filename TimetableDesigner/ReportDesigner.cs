@@ -8,95 +8,7 @@ using System.Windows.Forms;
 
 namespace TimetableDesignerApp
 {
-    #region Enums
-
-    /// <summary>
-    /// Enumeration of supported paper sizes.
-    /// </summary>
-    public enum PaperSize
-    {
-        A4,
-        A4Landscape,
-        A5,
-        A5Landscape
-    }
-
-    #endregion  
-
-    #region Data Structures
-
-    /// <summary>
-    /// Represents a section in the report.
-    /// </summary>
-    public class RDSection
-    {
-        public PointF LocationMM { get; set; }
-        public float WidthMM { get; set; }
-        public float HeightMM { get; set; }
-        public bool Resizable { get; set; }
-        public Padding MarginMM { get; set; } = new Padding(0);
-    }
-
-    /// <summary>
-    /// Represents a section that can contain elements.
-    /// </summary>
-    public class RDElementSection : RDSection
-    {
-        public RDElementSection()
-        {
-            Resizable = true;
-            MarginMM = new Padding(2);
-            HeightMM = 100; // Default height
-        }
-    }
-
-    /// <summary>
-    /// Represents a table section in the report.
-    /// </summary>
-    public class RDTableSection : RDSection
-    {
-        public RDTableSection()
-        {
-            Resizable = false;
-            MarginMM = new Padding(0);
-            HeightMM = 20; // Default height
-        }
-    }
-
-    /// <summary>
-    /// Base class for all elements in the report.
-    /// </summary>
-    public abstract class RDElement
-    {
-        public PointF LocationMM { get; set; }
-        public float WidthMM { get; set; }
-        public float HeightMM { get; set; }
-        public RDElementSection ParentSection { get; set; }
-        public bool Resizable { get; set; } = true;
-    }
-
-    /// <summary>
-    /// Represents a text element in the report.
-    /// </summary>
-    public class RDTextElement : RDElement
-    {
-        public string Text { get; set; }
-        public Font Font { get; set; }
-        public Color TextColor { get; set; }
-
-        public RDTextElement(RDElementSection parentSection, string text, Font font, Color textColor)
-        {
-            ParentSection = parentSection;
-            Text = text;
-            Font = font;
-            TextColor = textColor;
-            WidthMM = 50; // Default width
-            HeightMM = 10; // Default height
-            LocationMM = new PointF(0, 0);
-        }
-    }
-
-    #endregion
+   
 
     /// <summary>
     /// Main class for designing reports. Inherits from Panel for UI integration.
@@ -120,12 +32,27 @@ namespace TimetableDesignerApp
 
         #endregion
 
+        #region Enums
+
+        /// <summary>
+        /// Enumeration of supported paper sizes.
+        /// </summary>
+        public enum PaperSizes
+        {
+            A4,
+            A4Landscape,
+            A5,
+            A5Landscape
+        }
+
+        #endregion
+
         #region Fields
 
         private List<RDSection> sections = new List<RDSection>();
         private RDSection selectedSection;
         private RDElement selectedElement;
-        private PaperSize paperSize;
+        private PaperSizes paperSize;
         private float paperWidthMm;
         private float paperHeightMm;
         private float dpiX;
@@ -175,7 +102,7 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Gets or sets the paper size of the report.
         /// </summary>
-        public PaperSize PaperSize
+        public PaperSizes PaperSize
         {
             get => paperSize;
             set
@@ -235,7 +162,7 @@ namespace TimetableDesignerApp
         /// </summary>
         public ReportDesigner()
         {
-            PaperSize = PaperSize.A4;
+            PaperSize = PaperSizes.A4;
             UpdateDpi();
             SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.AllPaintingInWmPaint, true);
         }
@@ -885,19 +812,19 @@ namespace TimetableDesignerApp
         {
             switch (paperSize)
             {
-                case PaperSize.A4:
+                case PaperSizes.A4:
                     paperWidthMm = A4_WIDTH_MM;
                     paperHeightMm = A4_HEIGHT_MM;
                     break;
-                case PaperSize.A5:
+                case PaperSizes.A5:
                     paperWidthMm = A5_WIDTH_MM;
                     paperHeightMm = A5_HEIGHT_MM;
                     break;
-                case PaperSize.A4Landscape:
+                case PaperSizes.A4Landscape:
                     paperWidthMm = A4_HEIGHT_MM;
                     paperHeightMm = A4_WIDTH_MM;
                     break;
-                case PaperSize.A5Landscape:
+                case PaperSizes.A5Landscape:
                     paperWidthMm = A5_HEIGHT_MM;
                     paperHeightMm = A5_WIDTH_MM;
                     break;

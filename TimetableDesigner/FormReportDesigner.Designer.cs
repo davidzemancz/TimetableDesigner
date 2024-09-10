@@ -117,7 +117,7 @@
             this.reportDesigner1.Location = new System.Drawing.Point(0, 25);
             this.reportDesigner1.Name = "reportDesigner1";
             this.reportDesigner1.PaperMargin = new System.Windows.Forms.Padding(10);
-            this.reportDesigner1.PaperSize = TimetableDesignerApp.PaperSize.A4;
+            this.reportDesigner1.PaperSize = ReportDesigner.PaperSizes.A4;
             this.reportDesigner1.SelectedElement = null;
             this.reportDesigner1.SelectedSection = null;
             this.reportDesigner1.ShowGrid = false;

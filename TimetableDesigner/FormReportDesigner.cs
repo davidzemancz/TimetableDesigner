@@ -20,7 +20,7 @@ namespace TimetableDesignerApp
 
         private void FormReportDesigner_Load(object sender, EventArgs e)
         {
-            foreach (PaperSize paperSize in Enum.GetValues(typeof(PaperSize)))
+            foreach (ReportDesigner.PaperSizes paperSize in Enum.GetValues(typeof(ReportDesigner.PaperSizes)))
             {
                 tsCbxPaper.Items.Add(paperSize);
             }
@@ -29,7 +29,7 @@ namespace TimetableDesignerApp
 
         private void tsCbxPaper_SelectedIndexChanged(object sender, EventArgs e)
         {
-            var paperSize = (PaperSize)tsCbxPaper.SelectedItem;
+            var paperSize = (ReportDesigner.PaperSizes)tsCbxPaper.SelectedItem;
             reportDesigner1.PaperSize = paperSize;
         }
 
