@@ -116,7 +116,7 @@ namespace TimetableDesignerApp
         private const float RULER_WIDTH_MM = 10f;
         private const float RULER_TICK_SIZE_MM = 3f;
         private const float RULER_FONT_SIZE_PT = 12;
-        private const float RESIZE_HANDLE_SIZE_MM = 5;
+        private const float RESIZE_HANDLE_SIZE_MM = 2;
 
         #endregion
 
@@ -549,8 +549,8 @@ namespace TimetableDesignerApp
             float handleSizePixels = MmToPixels(RESIZE_HANDLE_SIZE_MM, dpiX);
             float x = elementRect.Right - handleSizePixels;
             float y = elementRect.Bottom - handleSizePixels;
-            g.FillRectangle(Brushes.White, x, y, handleSizePixels, handleSizePixels);
-            g.DrawRectangle(Pens.Black, x, y, handleSizePixels, handleSizePixels);
+
+            g.FillPolygon(Brushes.CornflowerBlue, new PointF[] { new PointF(x, elementRect.Bottom), new PointF(elementRect.Right, elementRect.Bottom), new PointF(elementRect.Right, y) });
         }
 
         #endregion
