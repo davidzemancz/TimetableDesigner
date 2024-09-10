@@ -45,7 +45,7 @@ namespace TimetableDesignerApp
             }
             else if(e.ClickedItem == addElem && reportDesigner1.SelectedSection is RDElementSection elemSection)
             {
-                reportDesigner1.AddElement(new RDTextElement(elemSection, "Cus bus", Font, Color.Black));
+                reportDesigner1.AddElement(new RDTextElement(elemSection, "Cus bus", Font, Color.Black) { AutoScaleFont = true});
             }
             else if(e.ClickedItem == zoomIn)
             {

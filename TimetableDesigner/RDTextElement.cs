@@ -10,6 +10,7 @@ namespace TimetableDesignerApp
         public string Text { get; set; }
         public Font Font { get; set; }
         public Color TextColor { get; set; }
+        public bool AutoScaleFont { get; set; }
 
         public RDTextElement(RDElementSection parentSection, string text, Font font, Color textColor)
         {
@@ -17,9 +18,6 @@ namespace TimetableDesignerApp
             Text = text;
             Font = font;
             TextColor = textColor;
-            WidthMM = 50; // Default width
-            HeightMM = 10; // Default height
-            LocationMM = new PointF(0, 0);
         }
     }
 }

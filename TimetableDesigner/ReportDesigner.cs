@@ -29,6 +29,8 @@ namespace TimetableDesignerApp
         private const float RULER_TICK_SIZE_MM = 3f;
         private const float RULER_FONT_SIZE_PT = 12;
         private const float RESIZE_HANDLE_SIZE_MM = 2;
+        private const int MIN_TEXT_ELEMENT_HEIGHT = 3;
+        private const int MIN_TEXT_ELEMENT_WIDTH = 5;
 
         #endregion
 
@@ -153,6 +155,13 @@ namespace TimetableDesignerApp
             }
         }
 
+        #region Private properties
+        
+        private float PaperX => Math.Max(0, (ClientSize.Width / zoomFactor - MmToPixels(paperWidthMm, dpiX)) / 2);
+        private float PaperY => MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
+
+        #endregion
+
         #endregion
 
         #region Constructor and Initialization
@@ -221,6 +230,25 @@ namespace TimetableDesignerApp
         {
             if (element.ParentSection is RDElementSection)
             {
+                // Default position
+                element.LocationMM = new PointF(0, 0);
+
+                // Setup element size
+                if (element is RDTextElement textElement)
+                {
+                    using (Graphics g = CreateGraphics()) 
+                    {
+                        SizeF stringSize = g.MeasureString(textElement.Text, textElement.Font);
+                        textElement.WidthMM = PixelsToMm(stringSize.Width, dpiX);
+                        textElement.HeightMM = PixelsToMm(stringSize.Height, dpiY);
+                    }
+                }
+                else
+                {
+                    element.WidthMM = 50;
+                    element.HeightMM = 50;
+                }
+
                 elements.Add(element);
                 SelectedElement = element;
                 Invalidate();
@@ -262,52 +290,52 @@ namespace TimetableDesignerApp
             e.Graphics.ScaleTransform(zoomFactor, zoomFactor);
 
             float paperWidthPixels = MmToPixels(paperWidthMm, dpiX);
-            float x = Math.Max(0, (ClientSize.Width / zoomFactor - paperWidthPixels) / 2);
+            float paperX = Math.Max(0, (ClientSize.Width / zoomFactor - paperWidthPixels) / 2);
+            float paperY = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
 
-            DrawPaper(e.Graphics, x);
-            DrawGrid(e.Graphics, x);
-            DrawRulers(e.Graphics, x);
-            DrawSections(e.Graphics, x);
-            DrawElements(e.Graphics, x);
+            DrawPaper(e.Graphics, paperX, paperY);
+            DrawGrid(e.Graphics, paperX, paperY);
+            DrawRulers(e.Graphics, paperX, paperY);
+            DrawSections(e.Graphics, paperX, paperY);
+            DrawElements(e.Graphics, paperX, paperY);
         }
 
         /// <summary>
         /// Draws the paper on the graphics object.
         /// </summary>
-        private void DrawPaper(Graphics g, float x)
+        private void DrawPaper(Graphics g, float paperX, float paperY)
         {
             float paperWidthPixels = MmToPixels(paperWidthMm, dpiX);
             float paperHeightPixels = MmToPixels(paperHeightMm, dpiY);
             float topMarginPixels = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
 
-            g.FillRectangle(Brushes.White, x, topMarginPixels, paperWidthPixels, paperHeightPixels);
-            g.DrawRectangle(Pens.Black, x, topMarginPixels, paperWidthPixels, paperHeightPixels);
+            g.FillRectangle(Brushes.White, paperX, topMarginPixels, paperWidthPixels, paperHeightPixels);
+            g.DrawRectangle(Pens.Black, paperX, topMarginPixels, paperWidthPixels, paperHeightPixels);
         }
 
         /// <summary>
         /// Draws the grid on the graphics object.
         /// </summary>
-        private void DrawGrid(Graphics g, float x)
+        private void DrawGrid(Graphics g, float paperX, float paperY)
         {
             if (!showGrid) return;
 
             float paperWidthPixels = MmToPixels(paperWidthMm, dpiX);
             float paperHeightPixels = MmToPixels(paperHeightMm, dpiY);
-            float topMarginPixels = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
             float gridSizePixels = MmToPixels(GRID_SIZE_MM, dpiX);
 
             using (Pen gridPen = new Pen(Color.LightGray, 1))
             {
                 // Draw vertical grid lines
-                for (float gridX = x + gridSizePixels; gridX <= x + paperWidthPixels; gridX += gridSizePixels)
+                for (float gridX = paperX + gridSizePixels; gridX <= paperX + paperWidthPixels; gridX += gridSizePixels)
                 {
-                    g.DrawLine(gridPen, gridX, topMarginPixels, gridX, topMarginPixels + paperHeightPixels);
+                    g.DrawLine(gridPen, gridX, paperY, gridX, paperY + paperHeightPixels);
                 }
 
                 // Draw horizontal grid lines
-                for (float gridY = topMarginPixels + gridSizePixels; gridY <= topMarginPixels + paperHeightPixels; gridY += gridSizePixels)
+                for (float gridY = paperY + gridSizePixels; gridY <= paperY + paperHeightPixels; gridY += gridSizePixels)
                 {
-                    g.DrawLine(gridPen, x, gridY, x + paperWidthPixels, gridY);
+                    g.DrawLine(gridPen, paperX, gridY, paperX + paperWidthPixels, gridY);
                 }
             }
         }
@@ -315,11 +343,10 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Draws the rulers on the graphics object.
         /// </summary>
-        private void DrawRulers(Graphics g, float x)
+        private void DrawRulers(Graphics g, float paperX, float paperY)
         {
             float paperWidthPixels = MmToPixels(paperWidthMm, dpiX);
             float paperHeightPixels = MmToPixels(paperHeightMm, dpiY);
-            float topMarginPixels = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
             float rulerWidthPixels = MmToPixels(RULER_WIDTH_MM, dpiX);
 
             using (Font rulerFont = new Font(Font.FontFamily, RULER_FONT_SIZE_PT, FontStyle.Regular))
@@ -329,30 +356,30 @@ namespace TimetableDesignerApp
                 // Draw horizontal ruler
                 for (int i = 0; i <= paperWidthMm; i += 10)
                 {
-                    float tickX = x + MmToPixels(i, dpiX);
+                    float tickX = paperX + MmToPixels(i, dpiX);
                     float tickHeight = MmToPixels(i % 50 == 0 ? RULER_TICK_SIZE_MM * 2 : RULER_TICK_SIZE_MM, dpiY);
-                    g.DrawLine(rulerPen, tickX, topMarginPixels - tickHeight, tickX, topMarginPixels);
+                    g.DrawLine(rulerPen, tickX, paperY - tickHeight, tickX, paperY);
 
                     if (i % 50 == 0)
                     {
                         string label = i.ToString();
                         SizeF labelSize = g.MeasureString(label, rulerFont);
-                        g.DrawString(label, rulerFont, textBrush, tickX - labelSize.Width / 2, topMarginPixels - tickHeight - labelSize.Height);
+                        g.DrawString(label, rulerFont, textBrush, tickX - labelSize.Width / 2, paperY - tickHeight - labelSize.Height);
                     }
                 }
 
                 // Draw vertical ruler
                 for (int i = 0; i <= paperHeightMm; i += 10)
                 {
-                    float tickY = topMarginPixels + MmToPixels(i, dpiY);
+                    float tickY = paperY + MmToPixels(i, dpiY);
                     float tickWidth = MmToPixels(i % 50 == 0 ? RULER_TICK_SIZE_MM * 2 : RULER_TICK_SIZE_MM, dpiX);
-                    g.DrawLine(rulerPen, x - tickWidth, tickY, x, tickY);
+                    g.DrawLine(rulerPen, paperX - tickWidth, tickY, paperX, tickY);
 
                     if (i % 50 == 0)
                     {
                         string label = i.ToString();
                         SizeF labelSize = g.MeasureString(label, rulerFont);
-                        g.DrawString(label, rulerFont, textBrush, x - tickWidth - labelSize.Width - 2, tickY - labelSize.Height / 2);
+                        g.DrawString(label, rulerFont, textBrush, paperX - tickWidth - labelSize.Width - 2, tickY - labelSize.Height / 2);
                     }
                 }
             }
@@ -361,16 +388,15 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Draws all sections on the graphics object.
         /// </summary>
-        private void DrawSections(Graphics g, float x)
+        private void DrawSections(Graphics g, float paperX, float paperY)
         {
-            float topMarginPixels = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
             foreach (var section in sections)
             {
                 bool selected = section == selectedSection;
-                DrawSection(g, x, topMarginPixels, section, selected);
+                DrawSection(g, paperX, paperY, section, selected);
                 if (section.Resizable)
                 {
-                    DrawSectionResizeHandle(g, x, topMarginPixels, section);
+                    DrawSectionResizeHandle(g, paperX, paperY, section);
                 }
             }
         }
@@ -378,10 +404,10 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Draws a single section on the graphics object.
         /// </summary>
-        private void DrawSection(Graphics g, float offsetX, float offsetY, RDSection section, bool selected)
+        private void DrawSection(Graphics g, float paperX, float paperY, RDSection section, bool selected)
         {
-            float x = offsetX + MmToPixels(section.LocationMM.X, dpiX);
-            float y = offsetY + MmToPixels(section.LocationMM.Y, dpiY);
+            float x = paperX + MmToPixels(section.LocationMM.X, dpiX);
+            float y = paperY + MmToPixels(section.LocationMM.Y, dpiY);
             float width = MmToPixels(section.WidthMM, dpiX);
             float height = MmToPixels(section.HeightMM, dpiY);
 
@@ -408,11 +434,11 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Draws the resize handle for a section.
         /// </summary>
-        private void DrawSectionResizeHandle(Graphics g, float x, float topMarginPixels, RDSection section)
+        private void DrawSectionResizeHandle(Graphics g, float paperX, float topMarginPixels, RDSection section)
         {
             float resizeHandleY = topMarginPixels + MmToPixels(section.LocationMM.Y + section.HeightMM, dpiY);
             float resizeHandleHeight = MmToPixels(RESIZE_HANDLE_HEIGHT_MM, dpiY);
-            float resizeHandleX = x + MmToPixels(section.LocationMM.X, dpiX);
+            float resizeHandleX = paperX + MmToPixels(section.LocationMM.X, dpiX);
             float resizeHandleWidth = MmToPixels(section.WidthMM, dpiX);
             g.FillRectangle(Brushes.CornflowerBlue, resizeHandleX, resizeHandleY, resizeHandleWidth, resizeHandleHeight);
         }
@@ -420,26 +446,36 @@ namespace TimetableDesignerApp
         /// <summary>
         /// Draws all elements on the graphics object.
         /// </summary>
-        private void DrawElements(Graphics g, float x)
+        private void DrawElements(Graphics g, float paperX, float paperY)
         {
-            float topMarginPixels = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
+            
             foreach (var element in elements)
             {
                 bool selected = element == selectedElement;
-                DrawElement(g, x, topMarginPixels, element, selected);
+                DrawElement(g, paperX, paperY, element, selected);
             }
         }
 
         /// <summary>
         /// Draws a single element on the graphics object.
         /// </summary>
-        private void DrawElement(Graphics g, float offsetX, float offsetY, RDElement element, bool selected)
+        private void DrawElement(Graphics g, float paperX, float paperY, RDElement element, bool selected)
         {
+            // Draw element
             if (element is RDTextElement textElement)
             {
-                DrawTextElement(g, offsetX, offsetY, textElement, selected);
+                DrawTextElement(g, paperX, paperY, textElement, selected);
             }
-            // Add other element type drawings here as needed
+
+            // Draw marks at rulers
+            if (selected)
+            {
+                // Left top corner
+                PointF ltPoint = new PointF(paperX - RULER_WIDTH_MM, paperY + MmToPixels(element.LocationMM.Y + element.ParentSection.LocationMM.Y, dpiY));
+                PointF ltPoint1 = new PointF(ltPoint.X - 5, ltPoint.Y - 5);
+                PointF ltPoint2 = new PointF(ltPoint.X - 5, ltPoint.Y + 5);
+                g.FillPolygon(Brushes.Red, new PointF[] { ltPoint, ltPoint1, ltPoint2 });
+            }
         }
 
         /// <summary>
@@ -491,12 +527,9 @@ namespace TimetableDesignerApp
         {
             base.OnMouseDown(e);
 
-            float paperWidthPixels = MmToPixels(paperWidthMm, dpiX);
-            float paperX = Math.Max(0, (ClientSize.Width / zoomFactor - paperWidthPixels) / 2);
-            float paperTopMarginPixels = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
-
-            float mouseXMm = PixelsToMm((e.X / zoomFactor) - paperX, dpiX);
-            float mouseYMm = PixelsToMm((e.Y / zoomFactor) - paperTopMarginPixels, dpiY);
+            PointF paperPoint = ControlToPaper(e.X, e.Y);
+            float mouseXMm = PixelsToMm(paperPoint.X, dpiX);
+            float mouseYMm = PixelsToMm(paperPoint.Y, dpiY);
 
             if (IsOverElementResizeHandle(mouseXMm, mouseYMm))
             {
@@ -520,6 +553,18 @@ namespace TimetableDesignerApp
             }
         }
 
+        private PointF ControlToPaper(int x, int y)
+        {
+            float paperWidthPixels = MmToPixels(paperWidthMm, dpiX);
+            float paperX = Math.Max(0, (ClientSize.Width / zoomFactor - paperWidthPixels) / 2);
+            float paperY = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
+
+            float mouseX = (x / zoomFactor) - paperX;
+            float mouseY = (y / zoomFactor) - paperY;
+
+            return new PointF(mouseX, mouseY);
+        }
+
         /// <summary>
         /// Handles the mouse move event.
         /// </summary>
@@ -529,10 +574,10 @@ namespace TimetableDesignerApp
 
             float paperWidthPixels = MmToPixels(paperWidthMm, dpiX);
             float paperX = Math.Max(0, (ClientSize.Width / zoomFactor - paperWidthPixels) / 2);
-            float paperTopMarginPixels = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
+            float paperY = MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
 
             float mouseXMm = PixelsToMm((e.X / zoomFactor) - paperX, dpiX);
-            float mouseYMm = PixelsToMm((e.Y / zoomFactor) - paperTopMarginPixels, dpiY);
+            float mouseYMm = PixelsToMm((e.Y / zoomFactor) - paperY, dpiY);
 
             if (isResizingElement)
             {
@@ -627,11 +672,19 @@ namespace TimetableDesignerApp
                 float newHeight = yMm - SelectedElement.ParentSection.LocationMM.Y - SelectedElement.LocationMM.Y - resizeStartOffset.Y;
 
                 // Constrain the element within the parent section
-                newWidth = Math.Max(10, Math.Min(newWidth, parentSection.WidthMM - SelectedElement.LocationMM.X));
-                newHeight = Math.Max(10, Math.Min(newHeight, parentSection.HeightMM - SelectedElement.LocationMM.Y));
+                newWidth = Math.Max(MIN_TEXT_ELEMENT_WIDTH, Math.Min(newWidth, parentSection.WidthMM - SelectedElement.LocationMM.X));
+                newHeight = Math.Max(MIN_TEXT_ELEMENT_HEIGHT, Math.Min(newHeight, parentSection.HeightMM - SelectedElement.LocationMM.Y));
+
+                // Auto -scale the font size if enabled
+                if (SelectedElement is RDTextElement textElement && textElement.AutoScaleFont)
+                {
+                    float fontSize = textElement.Font.Size * newHeight / textElement.HeightMM;
+                    textElement.Font = new Font(textElement.Font.FontFamily, fontSize, textElement.Font.Style);
+                }
 
                 SelectedElement.WidthMM = newWidth;
                 SelectedElement.HeightMM = newHeight;
+
                 Invalidate();
             }
         }
