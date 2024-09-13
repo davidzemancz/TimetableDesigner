@@ -25,13 +25,15 @@ namespace TimetableDesignerApp
         private const float GRID_SIZE_MM = 10f;
         private const float PAPER_TOP_MARGIN_MM = 20f;
         private const int RESIZE_HANDLE_HEIGHT_MM = 1;
-        private const float RULER_WIDTH_MM = 10f;
-        private const float RULER_TICK_SIZE_MM = 3f;
-        private const float RULER_FONT_SIZE_PT = 12;
+        private const float RULER_WIDTH_MM = 8;
+        private const float RULER_TICK_SIZE_MM = 2;
+        private const float RULER_FONT_SIZE_PT = 8;
+        private const int RULER_ARROW_SIZE = 5;
         private const float RESIZE_HANDLE_SIZE_MM = 2;
         private const int MIN_TEXT_ELEMENT_HEIGHT = 3;
         private const int MIN_TEXT_ELEMENT_WIDTH = 5;
-        private const int RULER_ARROW_SIZE = 5;
+
+        
 
         #endregion
 
@@ -70,6 +72,8 @@ namespace TimetableDesignerApp
         private bool isResizingSection;
         private bool isResizingElement;
         private PointF resizeStartOffset;
+
+        private static readonly Font rulerFont = new Font("Segoe UI", RULER_FONT_SIZE_PT);
 
         #endregion
 
@@ -346,40 +350,52 @@ namespace TimetableDesignerApp
             float paperHeightPixels = MmToPixels(paperHeightMm, dpiY);
             float rulerWidthPixels = MmToPixels(RULER_WIDTH_MM, dpiX);
 
-            using (Font rulerFont = new Font(Font.FontFamily, RULER_FONT_SIZE_PT, FontStyle.Regular))
+            const int rulerDensityMm = 5;
+            const int rulerMarksDensityMm = 50;
+
             using (Brush textBrush = new SolidBrush(Color.Black))
             using (Pen rulerPen = new Pen(Color.Black, 1))
             {
                 // Draw horizontal ruler
-                for (int i = 0; i <= paperWidthMm; i += 10)
+                for (int i = 0; i <= paperWidthMm; i += rulerDensityMm)
                 {
                     float tickX = PaperX + MmToPixels(i, dpiX);
-                    float tickHeight = MmToPixels(i % 50 == 0 ? RULER_TICK_SIZE_MM * 2 : RULER_TICK_SIZE_MM, dpiY);
+                    float tickHeight = MmToPixels(i % rulerMarksDensityMm == 0 ? RULER_TICK_SIZE_MM * 2 : RULER_TICK_SIZE_MM, dpiY);
                     g.DrawLine(rulerPen, tickX, PaperY - tickHeight, tickX, PaperY);
 
-                    if (i % 50 == 0)
+                    if (i % rulerMarksDensityMm == 0)
                     {
-                        string label = i.ToString();
-                        SizeF labelSize = g.MeasureString(label, rulerFont);
-                        g.DrawString(label, rulerFont, textBrush, tickX - labelSize.Width / 2, PaperY - tickHeight - labelSize.Height);
+                        DrawHorizontalRulerString(g, textBrush, i.ToString(), tickX);
                     }
                 }
 
                 // Draw vertical ruler
-                for (int i = 0; i <= paperHeightMm; i += 10)
+                for (int i = 0; i <= paperHeightMm; i += rulerDensityMm)
                 {
                     float tickY = PaperY + MmToPixels(i, dpiY);
-                    float tickWidth = MmToPixels(i % 50 == 0 ? RULER_TICK_SIZE_MM * 2 : RULER_TICK_SIZE_MM, dpiX);
+                    float tickWidth = MmToPixels(i % rulerMarksDensityMm == 0 ? RULER_TICK_SIZE_MM * 2 : RULER_TICK_SIZE_MM, dpiX);
                     g.DrawLine(rulerPen, PaperX - tickWidth, tickY, PaperX, tickY);
 
-                    if (i % 50 == 0)
+                    if (i % rulerMarksDensityMm == 0)
                     {
-                        string label = i.ToString();
-                        SizeF labelSize = g.MeasureString(label, rulerFont);
-                        g.DrawString(label, rulerFont, textBrush, PaperX - tickWidth - labelSize.Width - 2, tickY - labelSize.Height / 2);
+                        DrawVerticalRulerString(g, textBrush, i.ToString(), tickY);
                     }
                 }
             }
+        }
+
+        private void DrawHorizontalRulerString(Graphics g, Brush textBrush, string label, float tickX)
+        {
+            float tickHeight = MmToPixels( RULER_TICK_SIZE_MM * 2, dpiY);
+            SizeF labelSize = g.MeasureString(label, rulerFont);
+            g.DrawString(label, rulerFont, textBrush, tickX - labelSize.Width / 2, PaperY - tickHeight - labelSize.Height);
+        }
+
+        private void DrawVerticalRulerString(Graphics g, Brush textBrush, string label, float tickY)
+        {
+            float tickWidth = MmToPixels( RULER_TICK_SIZE_MM * 2, dpiX);
+            SizeF labelSize = g.MeasureString(label, rulerFont);
+            g.DrawString(label, rulerFont, textBrush, PaperX - tickWidth - labelSize.Width - 2, tickY - labelSize.Height / 2);
         }
 
         /// <summary>
@@ -467,33 +483,45 @@ namespace TimetableDesignerApp
             // Draw marks at rulers
             if (selected)
             {
-                // Left top corner
-                PointF ltPoint = new PointF(PaperX - RULER_WIDTH_MM, PaperY + MmToPixels(element.LocationMM.Y + element.ParentSection.LocationMM.Y, dpiY));
-                PointF ltPoint1 = new PointF(ltPoint.X - RULER_ARROW_SIZE, ltPoint.Y - RULER_ARROW_SIZE);
-                PointF ltPoint2 = new PointF(ltPoint.X - RULER_ARROW_SIZE, ltPoint.Y + RULER_ARROW_SIZE);
-                g.FillPolygon(Brushes.Red, new PointF[] { ltPoint, ltPoint1, ltPoint2 });
-
-                // Left bottom corner
-                PointF lbPoint = new PointF(PaperX - RULER_WIDTH_MM, PaperY + MmToPixels(element.LocationMM.Y + element.ParentSection.LocationMM.Y + element.HeightMM, dpiY));
-                PointF lbPoint1 = new PointF(lbPoint.X - RULER_ARROW_SIZE, lbPoint.Y - RULER_ARROW_SIZE);
-                PointF lbPoint2 = new PointF(lbPoint.X - RULER_ARROW_SIZE, lbPoint.Y + RULER_ARROW_SIZE);
-                g.FillPolygon(Brushes.Red, new PointF[] { lbPoint, lbPoint1, lbPoint2 });
-
-                // Top left corner
-                PointF tlPoint = new PointF(PaperX + MmToPixels(element.LocationMM.X + element.ParentSection.LocationMM.X, dpiX), PaperY - RULER_WIDTH_MM);
-                PointF tlPoint1 = new PointF(tlPoint.X - RULER_ARROW_SIZE, tlPoint.Y - RULER_ARROW_SIZE);
-                PointF tlPoint2 = new PointF(tlPoint.X + RULER_ARROW_SIZE, tlPoint.Y - RULER_ARROW_SIZE);
-                g.FillPolygon(Brushes.Red, new PointF[] { tlPoint, tlPoint1, tlPoint2 });
-
-                // Top right corner
-                PointF trPoint = new PointF(PaperX + MmToPixels(element.LocationMM.X + element.WidthMM + element.ParentSection.LocationMM.X, dpiX), PaperY - RULER_WIDTH_MM);
-                PointF trPoint1 = new PointF(trPoint.X - RULER_ARROW_SIZE, trPoint.Y - RULER_ARROW_SIZE);
-                PointF trPoint2 = new PointF(trPoint.X + RULER_ARROW_SIZE, trPoint.Y - RULER_ARROW_SIZE);
-                g.FillPolygon(Brushes.Red, new PointF[] { trPoint, trPoint1, trPoint2 });
-
-             
-
+                DrawElementRulerMarks(g, element);
             }
+        }
+
+        /// <summary>
+        /// Draws element position marks at rulers
+        /// </summary>
+        private void DrawElementRulerMarks(Graphics g, RDElement element)
+        {
+            Brush rulerMarkBrush = Brushes.Red;
+
+            // Left top corner
+            PointF ltPoint = new PointF(PaperX - RULER_WIDTH_MM, PaperY + MmToPixels(element.LocationMM.Y + element.ParentSection.LocationMM.Y, dpiY));
+            PointF ltPoint1 = new PointF(ltPoint.X - RULER_ARROW_SIZE, ltPoint.Y - RULER_ARROW_SIZE);
+            PointF ltPoint2 = new PointF(ltPoint.X - RULER_ARROW_SIZE, ltPoint.Y + RULER_ARROW_SIZE);
+            g.FillPolygon(rulerMarkBrush, new PointF[] { ltPoint, ltPoint1, ltPoint2 });
+            DrawVerticalRulerString(g, rulerMarkBrush, ((int)(element.LocationMM.Y + element.ParentSection.LocationMM.Y)).ToString(), ltPoint.Y);
+
+
+            // Left bottom corner
+            PointF lbPoint = new PointF(PaperX - RULER_WIDTH_MM, PaperY + MmToPixels(element.LocationMM.Y + element.ParentSection.LocationMM.Y + element.HeightMM, dpiY));
+            PointF lbPoint1 = new PointF(lbPoint.X - RULER_ARROW_SIZE, lbPoint.Y - RULER_ARROW_SIZE);
+            PointF lbPoint2 = new PointF(lbPoint.X - RULER_ARROW_SIZE, lbPoint.Y + RULER_ARROW_SIZE);
+            g.FillPolygon(rulerMarkBrush, new PointF[] { lbPoint, lbPoint1, lbPoint2 });
+            DrawVerticalRulerString(g, rulerMarkBrush, ((int)(element.LocationMM.Y + element.ParentSection.LocationMM.Y + element.HeightMM)).ToString(), lbPoint.Y);
+
+            // Top left corner
+            PointF tlPoint = new PointF(PaperX + MmToPixels(element.LocationMM.X + element.ParentSection.LocationMM.X, dpiX), PaperY - RULER_WIDTH_MM);
+            PointF tlPoint1 = new PointF(tlPoint.X - RULER_ARROW_SIZE, tlPoint.Y - RULER_ARROW_SIZE);
+            PointF tlPoint2 = new PointF(tlPoint.X + RULER_ARROW_SIZE, tlPoint.Y - RULER_ARROW_SIZE);
+            g.FillPolygon(rulerMarkBrush, new PointF[] { tlPoint, tlPoint1, tlPoint2 });
+            DrawHorizontalRulerString(g, rulerMarkBrush, ((int)(element.LocationMM.X + element.ParentSection.LocationMM.X)).ToString(), tlPoint.X);
+
+            // Top right corner
+            PointF trPoint = new PointF(PaperX + MmToPixels(element.LocationMM.X + element.WidthMM + element.ParentSection.LocationMM.X, dpiX), PaperY - RULER_WIDTH_MM);
+            PointF trPoint1 = new PointF(trPoint.X - RULER_ARROW_SIZE, trPoint.Y - RULER_ARROW_SIZE);
+            PointF trPoint2 = new PointF(trPoint.X + RULER_ARROW_SIZE, trPoint.Y - RULER_ARROW_SIZE);
+            g.FillPolygon(rulerMarkBrush, new PointF[] { trPoint, trPoint1, trPoint2 });
+            DrawHorizontalRulerString(g, rulerMarkBrush, ((int)(element.LocationMM.X + element.WidthMM + element.ParentSection.LocationMM.X)).ToString(), trPoint.X);
         }
 
         /// <summary>
@@ -511,7 +539,6 @@ namespace TimetableDesignerApp
             {
                 g.DrawString(element.Text, element.Font, brush, rect);
             }
-
             if (selected)
             {
                 using (Pen selectedElementPen = new Pen(Color.CornflowerBlue, 2))
