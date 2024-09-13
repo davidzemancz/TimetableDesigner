@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Printing;
 using System.Linq;
 using System.Windows.Forms;
+using System.Windows.Forms.Design.Behavior;
 
 namespace TimetableDesignerApp
 {
@@ -32,7 +33,8 @@ namespace TimetableDesignerApp
         private const float RESIZE_HANDLE_SIZE_MM = 2;
         private const int MIN_TEXT_ELEMENT_HEIGHT = 3;
         private const int MIN_TEXT_ELEMENT_WIDTH = 5;
-
+        private const float SNAP_THRESHOLD_MM = 5f; // Snap threshold in millimeters
+        private const float SNAP_DISPLAY_THRESHOLD_MM = 10f; // Display threshold for snap lines
         
 
         #endregion
@@ -72,6 +74,8 @@ namespace TimetableDesignerApp
         private bool isResizingSection;
         private bool isResizingElement;
         private PointF resizeStartOffset;
+        private List<RDSnapLine> snapLines = new List<RDSnapLine>();
+        private List<RDSnapLine> activeSnapLines = new List<RDSnapLine>();
 
         private static readonly Font rulerFont = new Font("Segoe UI", RULER_FONT_SIZE_PT);
 
@@ -160,8 +164,19 @@ namespace TimetableDesignerApp
             }
         }
 
+        /// <summary>
+        /// Gets or sets whether to draw snap lines.
+        /// </summary>
+        public bool ShowSnapLines { get; set; }
+
+
+        /// <summary>
+        /// Gets or sets whether to snap to snap lines.
+        /// </summary>
+        public bool UseSnapLines { get; set; }
+
         #region Private properties
-        
+
         private float PaperX => Math.Max(0, (ClientSize.Width / zoomFactor - MmToPixels(paperWidthMm, dpiX)) / 2);
         private float PaperY => MmToPixels(PAPER_TOP_MARGIN_MM, dpiY);
 
@@ -299,6 +314,7 @@ namespace TimetableDesignerApp
             DrawRulers(e.Graphics);
             DrawSections(e.Graphics);
             DrawElements(e.Graphics);
+            DrawSnapLines(e.Graphics);
         }
 
         /// <summary>
@@ -561,6 +577,31 @@ namespace TimetableDesignerApp
             g.FillPolygon(Brushes.CornflowerBlue, new PointF[] { new PointF(x, elementRect.Bottom), new PointF(elementRect.Right, elementRect.Bottom), new PointF(elementRect.Right, y) });
         }
 
+        /// <summary>
+        /// Draws snap lines
+        /// </summary>
+        private void DrawSnapLines(Graphics g)
+        {
+            if (!isMovingElement || SelectedElement == null || !ShowSnapLines) return;
+
+            using (Pen snapLinePen = new Pen(Color.Red, 1) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dash })
+            {
+                foreach (var snapLine in activeSnapLines)
+                {
+                    if (snapLine.IsVertical)
+                    {
+                        float x = PaperX + MmToPixels(SelectedElement.ParentSection.LocationMM.X + snapLine.PositionMM, dpiX);
+                        g.DrawLine(snapLinePen, x, 0, x, Height);
+                    }
+                    else
+                    {
+                        float y = PaperY + MmToPixels(SelectedElement.ParentSection.LocationMM.Y + snapLine.PositionMM, dpiY);
+                        g.DrawLine(snapLinePen, 0, y, Width, y);
+                    }
+                }
+            }
+        }
+
         #endregion
 
         #region Mouse Handling (continued)
@@ -590,6 +631,7 @@ namespace TimetableDesignerApp
                 if (SelectedElement != null)
                 {
                     StartMovingElement(mouseXMm, mouseYMm);
+                    UpdateSnapLines(SelectedElement);
                 }
                 else
                 {
@@ -631,11 +673,14 @@ namespace TimetableDesignerApp
             else if (isMovingElement)
             {
                 MoveElement(mouseXMm, mouseYMm);
+                UpdateActiveSnapLines(SelectedElement);
             }
             else
             {
                 UpdateCursor(mouseXMm, mouseYMm);
             }
+
+            Invalidate(); // Ensure snap lines are redrawn
         }
 
         /// <summary>
@@ -648,7 +693,10 @@ namespace TimetableDesignerApp
             isResizingElement = false;
             isResizingSection = false;
             isMovingElement = false;
+            snapLines.Clear(); // Clear snap lines when mouse is released
+            activeSnapLines.Clear(); // Clear active snap lines
             Cursor = Cursors.Default;
+            Invalidate();
         }
 
         #endregion
@@ -761,16 +809,132 @@ namespace TimetableDesignerApp
         {
             if (SelectedElement != null && SelectedElement.ParentSection is RDElementSection parentSection)
             {
-                float newX = xMm - moveStartOffset.X - parentSection.LocationMM.X;
-                float newY = yMm - moveStartOffset.Y - parentSection.LocationMM.Y;
+                float newXMm = xMm - moveStartOffset.X - parentSection.LocationMM.X;
+                float newYMm = yMm - moveStartOffset.Y - parentSection.LocationMM.Y;
+
+                // Apply snapping
+                ApplySnapping(ref newXMm, ref newYMm);
 
                 // Constrain the element within the parent section
-                newX = Math.Max(0, Math.Min(newX, parentSection.WidthMM - SelectedElement.WidthMM));
-                newY = Math.Max(0, Math.Min(newY, parentSection.HeightMM - SelectedElement.HeightMM));
+                newXMm = Math.Max(0, Math.Min(newXMm, parentSection.WidthMM - SelectedElement.WidthMM));
+                newYMm = Math.Max(0, Math.Min(newYMm, parentSection.HeightMM - SelectedElement.HeightMM));
 
-                SelectedElement.LocationMM = new PointF(newX, newY);
+                SelectedElement.LocationMM = new PointF(newXMm, newYMm);
                 Invalidate();
             }
+        }
+
+        #endregion
+
+        #region Snaplines
+
+        /// <summary>
+        /// Updates the snap lines based on the elements.
+        /// </summary>
+        private void UpdateSnapLines(RDElement element)
+        {
+            snapLines.Clear();
+
+            var otherElements = elements.Where(e => e != element && e.ParentSection == element.ParentSection);
+
+            foreach (var otherElement in otherElements)
+            {
+                // Vertical snap lines
+                snapLines.Add(new RDSnapLine { PositionMM = otherElement.LocationMM.X, IsVertical = true });
+                snapLines.Add(new RDSnapLine { PositionMM = otherElement.LocationMM.X + otherElement.WidthMM / 2, IsVertical = true });
+                snapLines.Add(new RDSnapLine { PositionMM = otherElement.LocationMM.X + otherElement.WidthMM, IsVertical = true });
+
+                // Horizontal snap lines
+                snapLines.Add(new RDSnapLine { PositionMM = otherElement.LocationMM.Y, IsVertical = false });
+                snapLines.Add(new RDSnapLine { PositionMM = otherElement.LocationMM.Y + otherElement.HeightMM / 2, IsVertical = false });
+                snapLines.Add(new RDSnapLine { PositionMM = otherElement.LocationMM.Y + otherElement.HeightMM, IsVertical = false });
+            }
+        }
+
+        /// <summary>
+        /// Updates the active snap lines based on the element's position.
+        /// </summary>
+        private void UpdateActiveSnapLines(RDElement element)
+        {
+            activeSnapLines.Clear();
+            float xMm= element.LocationMM.X;
+            float yMm = element.LocationMM.Y;
+
+            foreach (var snapLine in snapLines)
+            {
+                if (snapLine.IsVertical)
+                {
+                    if (Math.Abs(xMm - snapLine.PositionMM) <= SNAP_DISPLAY_THRESHOLD_MM ||
+                        Math.Abs(xMm + element.WidthMM - snapLine.PositionMM) <= SNAP_DISPLAY_THRESHOLD_MM ||
+                        Math.Abs(xMm + element.WidthMM / 2 - snapLine.PositionMM) <= SNAP_DISPLAY_THRESHOLD_MM)
+                    {
+                        activeSnapLines.Add(snapLine);
+                    }
+                }
+                else
+                {
+                    if (Math.Abs(yMm - snapLine.PositionMM) <= SNAP_DISPLAY_THRESHOLD_MM ||
+                        Math.Abs(yMm + element.HeightMM - snapLine.PositionMM) <= SNAP_DISPLAY_THRESHOLD_MM ||
+                        Math.Abs(yMm + element.HeightMM / 2 - snapLine.PositionMM) <= SNAP_DISPLAY_THRESHOLD_MM)
+                    {
+                        activeSnapLines.Add(snapLine);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Applies snapping to the given coordinates.
+        /// </summary>
+        private void ApplySnapping(ref float xMm, ref float yMm)
+        {
+            if(!UseSnapLines) return;
+
+            float snapX = xMm, snapY = yMm;
+            bool snappedX = false, snappedY = false;
+
+            foreach (var snapLine in snapLines)
+            {
+                if (snapLine.IsVertical)
+                {
+                    if (Math.Abs(xMm - snapLine.PositionMM) <= SNAP_THRESHOLD_MM)
+                    {
+                        snapX = snapLine.PositionMM;
+                        snappedX = true;
+                    }
+                    if (Math.Abs(xMm + SelectedElement.WidthMM - snapLine.PositionMM) <= SNAP_THRESHOLD_MM)
+                    {
+                        snapX = snapLine.PositionMM - SelectedElement.WidthMM;
+                        snappedX = true;
+                    }
+                    if (Math.Abs(xMm + SelectedElement.WidthMM / 2 - snapLine.PositionMM) <= SNAP_THRESHOLD_MM)
+                    {
+                        snapX = snapLine.PositionMM - SelectedElement.WidthMM / 2;
+                        snappedX = true;
+                    }
+                }
+                else
+                {
+                    if (Math.Abs(yMm - snapLine.PositionMM) <= SNAP_THRESHOLD_MM)
+                    {
+                        snapY = snapLine.PositionMM;
+                        snappedY = true;
+                    }
+                    if (Math.Abs(yMm + SelectedElement.HeightMM - snapLine.PositionMM) <= SNAP_THRESHOLD_MM)
+                    {
+                        snapY = snapLine.PositionMM - SelectedElement.HeightMM;
+                        snappedY = true;
+                    }
+                    if (Math.Abs(yMm + SelectedElement.HeightMM / 2 - snapLine.PositionMM) <= SNAP_THRESHOLD_MM)
+                    {
+                        snapY = snapLine.PositionMM - SelectedElement.HeightMM / 2;
+                        snappedY = true;
+                    }
+                }
+            }
+
+            if (snappedX) xMm = snapX;
+            if (snappedY) yMm = snapY;
         }
 
         #endregion

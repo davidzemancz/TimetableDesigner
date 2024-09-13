@@ -35,9 +35,11 @@
             this.addElem = new System.Windows.Forms.ToolStripButton();
             this.zoomIn = new System.Windows.Forms.ToolStripButton();
             this.zoomOut = new System.Windows.Forms.ToolStripButton();
+            this.tsbUseSnapLines = new System.Windows.Forms.ToolStripButton();
+            this.tsbShowGrid = new System.Windows.Forms.ToolStripButton();
             this.tsCbxPaper = new System.Windows.Forms.ToolStripComboBox();
             this.reportDesigner1 = new TimetableDesignerApp.ReportDesigner();
-            this.tsbShowGrid = new System.Windows.Forms.ToolStripButton();
+            this.tsbDrawSnaplines = new System.Windows.Forms.ToolStripButton();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -49,6 +51,8 @@
             this.addElem,
             this.zoomIn,
             this.zoomOut,
+            this.tsbDrawSnaplines,
+            this.tsbUseSnapLines,
             this.tsbShowGrid,
             this.tsCbxPaper});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
@@ -102,6 +106,24 @@
             this.zoomOut.Size = new System.Drawing.Size(64, 22);
             this.zoomOut.Text = "Zoom out";
             // 
+            // tsbUseSnapLines
+            // 
+            this.tsbUseSnapLines.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsbUseSnapLines.Image = ((System.Drawing.Image)(resources.GetObject("tsbUseSnapLines.Image")));
+            this.tsbUseSnapLines.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsbUseSnapLines.Name = "tsbUseSnapLines";
+            this.tsbUseSnapLines.Size = new System.Drawing.Size(82, 22);
+            this.tsbUseSnapLines.Text = "Use snaplines";
+            // 
+            // tsbShowGrid
+            // 
+            this.tsbShowGrid.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsbShowGrid.Image = ((System.Drawing.Image)(resources.GetObject("tsbShowGrid.Image")));
+            this.tsbShowGrid.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsbShowGrid.Name = "tsbShowGrid";
+            this.tsbShowGrid.Size = new System.Drawing.Size(64, 22);
+            this.tsbShowGrid.Text = "Show grid";
+            // 
             // tsCbxPaper
             // 
             this.tsCbxPaper.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
@@ -117,22 +139,24 @@
             this.reportDesigner1.Location = new System.Drawing.Point(0, 25);
             this.reportDesigner1.Name = "reportDesigner1";
             this.reportDesigner1.PaperMargin = new System.Windows.Forms.Padding(10);
-            this.reportDesigner1.PaperSize = ReportDesigner.PaperSizes.A4;
+            this.reportDesigner1.PaperSize = TimetableDesignerApp.ReportDesigner.PaperSizes.A4;
             this.reportDesigner1.SelectedElement = null;
             this.reportDesigner1.SelectedSection = null;
             this.reportDesigner1.ShowGrid = false;
+            this.reportDesigner1.ShowSnapLines = false;
             this.reportDesigner1.Size = new System.Drawing.Size(1500, 748);
             this.reportDesigner1.TabIndex = 0;
+            this.reportDesigner1.UseSnapLines = false;
             this.reportDesigner1.ZoomFactor = 1F;
             // 
-            // tsbShowGrid
+            // tsbDrawSnaplines
             // 
-            this.tsbShowGrid.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.tsbShowGrid.Image = ((System.Drawing.Image)(resources.GetObject("tsbShowGrid.Image")));
-            this.tsbShowGrid.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.tsbShowGrid.Name = "tsbShowGrid";
-            this.tsbShowGrid.Size = new System.Drawing.Size(64, 22);
-            this.tsbShowGrid.Text = "Show grid";
+            this.tsbDrawSnaplines.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.tsbDrawSnaplines.Image = ((System.Drawing.Image)(resources.GetObject("tsbDrawSnaplines.Image")));
+            this.tsbDrawSnaplines.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.tsbDrawSnaplines.Name = "tsbDrawSnaplines";
+            this.tsbDrawSnaplines.Size = new System.Drawing.Size(92, 22);
+            this.tsbDrawSnaplines.Text = "Show snaplines";
             // 
             // FormReportDesigner
             // 
@@ -162,5 +186,7 @@
         private System.Windows.Forms.ToolStripButton zoomOut;
         private System.Windows.Forms.ToolStripComboBox tsCbxPaper;
         private System.Windows.Forms.ToolStripButton tsbShowGrid;
+        private System.Windows.Forms.ToolStripButton tsbUseSnapLines;
+        private System.Windows.Forms.ToolStripButton tsbDrawSnaplines;
     }
 }

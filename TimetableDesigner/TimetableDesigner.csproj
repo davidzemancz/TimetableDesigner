@@ -123,6 +123,7 @@
     <Compile Include="RDElement.cs" />
     <Compile Include="RDElementSection.cs" />
     <Compile Include="RDSection.cs" />
+    <Compile Include="RDSnapLine.cs" />
     <Compile Include="RDTableSection.cs" />
     <Compile Include="RDTextElement.cs" />
     <Compile Include="ReportDesigner.cs">

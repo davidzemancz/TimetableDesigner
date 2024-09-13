@@ -39,15 +39,15 @@ namespace TimetableDesignerApp
             {
                 reportDesigner1.AddSection(new RDElementSection());
             }
-            else if(e.ClickedItem == addTable)
+            else if (e.ClickedItem == addTable)
             {
                 reportDesigner1.AddSection(new RDTableSection());
             }
-            else if(e.ClickedItem == addElem && reportDesigner1.SelectedSection is RDElementSection elemSection)
+            else if (e.ClickedItem == addElem && reportDesigner1.SelectedSection is RDElementSection elemSection)
             {
-                reportDesigner1.AddElement(new RDTextElement(elemSection, "Cus bus", Font, Color.Black) { AutoScaleFont = true});
+                reportDesigner1.AddElement(new RDTextElement(elemSection, "Cus bus", Font, Color.Black) { AutoScaleFont = true });
             }
-            else if(e.ClickedItem == zoomIn)
+            else if (e.ClickedItem == zoomIn)
             {
                 reportDesigner1.ZoomFactor += 0.1f;
             }
@@ -59,6 +59,15 @@ namespace TimetableDesignerApp
             {
                 reportDesigner1.ShowGrid = !reportDesigner1.ShowGrid;
             }
+            else if (e.ClickedItem == tsbDrawSnaplines)
+            {
+                reportDesigner1.ShowSnapLines = !reportDesigner1.ShowSnapLines;
+            }
+            else if (e.ClickedItem == tsbUseSnapLines)
+            {
+                reportDesigner1.UseSnapLines = !reportDesigner1.UseSnapLines;
+            }
+
 
         }
 
